@@ -10,6 +10,10 @@ import ConversionFunnel from "@/components/charts/ConversionFunnel";
 import BarMetricChart from "@/components/charts/BarMetricChart";
 import TopPagesTable from "@/components/TopPagesTable";
 import ActivityFeed from "@/components/ActivityFeed";
+import ReportsTab from "@/components/tabs/ReportsTab";
+import AlertsTab from "@/components/tabs/AlertsTab";
+import HelpTab from "@/components/tabs/HelpTab";
+import SettingsTab from "@/components/tabs/SettingsTab";
 import {
   kpiMetrics,
   timeSeriesData,
@@ -74,8 +78,17 @@ export default function DashboardPage() {
           {(activeTab === "sessions" || activeTab === "analytics") && (
             <AnalyticsTab key={refreshKey} />
           )}
-          {(activeTab === "reports" || activeTab === "alerts" || activeTab === "help" || activeTab === "settings") && (
-            <PlaceholderTab tab={activeTab} />
+          {(activeTab === "reports") && (
+            <ReportsTab key={refreshKey} />
+          )}
+          {(activeTab === "alerts") && (
+            <AlertsTab key={refreshKey} />
+          )}
+          {(activeTab === "help") && (
+            <HelpTab />
+          )}
+          {(activeTab === "settings") && (
+            <SettingsTab />
           )}
         </div>
       </main>
@@ -164,20 +177,6 @@ function AnalyticsTab() {
         <ConversionFunnel data={conversionFunnelData} />
         <ActivityFeed events={recentEvents} />
       </div>
-    </div>
-  );
-}
-
-function PlaceholderTab({ tab }: { tab: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-96 text-center animate-fade-in">
-      <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center mb-4">
-        <span className="text-3xl">🚀</span>
-      </div>
-      <h2 className="text-lg font-semibold text-white mb-2 capitalize">{tab}</h2>
-      <p className="text-sm text-gray-500 max-w-xs">
-        This section is under development. Check back soon for updates.
-      </p>
     </div>
   );
 }
