@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import KPICard from "@/components/KPICard";
@@ -14,168 +13,180 @@ import ReportsTab from "@/components/tabs/ReportsTab";
 import AlertsTab from "@/components/tabs/AlertsTab";
 import HelpTab from "@/components/tabs/HelpTab";
 import SettingsTab from "@/components/tabs/SettingsTab";
-import {
-  kpiMetrics,
-  timeSeriesData,
-  trafficSourceData,
-  topPages,
-  recentEvents,
-  conversionFunnelData,
-} from "@/lib/mockData";
+import { useDashboard } from "@/lib/DashboardContext";
 
-const tabTitles: Record<string, string> = {
-  overview:  "Overview",
-  revenue:   "Revenue Analytics",
-  users:     "User Analytics",
-  sessions:  "Session Analytics",
-  analytics: "Advanced Analytics",
-  reports:   "Reports",
-  alerts:    "Alerts",
-  help:      "Help & Support",
-  settings:  "Settings",
+const TAB_TITLES: Record<string,string> = {
+  overview: "Overview",  revenue:  "Revenue Analytics",
+  users:    "Users",     sessions: "Sessions & Traffic",
+  analytics:"Analytics", reports:  "Reports",
+  alerts:   "Alerts",    help:     "Help & Support",
+  settings: "Settings",
 };
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab,    setActiveTab]    = useState("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { refresh, data } = useDashboard();
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setRefreshKey((k) => k + 1);
-    }, 1200);
-  }, []);
+    refresh();
+    setTimeout(() => setIsRefreshing(false), 1200);
+  }, [refresh]);
 
-  // Auto-refresh every 60 seconds
-  useEffect(() => {
-    const id = setInterval(handleRefresh, 60_000);
-    return () => clearInterval(id);
-  }, [handleRefresh]);
+  const activeAlertCount = 3; // displayed as badge; Sidebar fetches live count internally
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} alertCount={activeAlertCount} />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          title={tabTitles[activeTab] ?? "Dashboard"}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-        />
-
+        <Header title={TAB_TITLES[activeTab] ?? "Dashboard"} isRefreshing={isRefreshing} onRefresh={handleRefresh} onTabChange={setActiveTab} />
         <div className="flex-1 overflow-y-auto bg-gray-950 p-6">
-          {activeTab === "overview" && (
-            <OverviewTab key={refreshKey} />
-          )}
-          {activeTab === "revenue" && (
-            <RevenueTab key={refreshKey} />
-          )}
-          {activeTab === "users" && (
-            <UsersTab key={refreshKey} />
-          )}
-          {(activeTab === "sessions" || activeTab === "analytics") && (
-            <AnalyticsTab key={refreshKey} />
-          )}
-          {(activeTab === "reports") && (
-            <ReportsTab key={refreshKey} />
-          )}
-          {(activeTab === "alerts") && (
-            <AlertsTab key={refreshKey} />
-          )}
-          {(activeTab === "help") && (
-            <HelpTab />
-          )}
-          {(activeTab === "settings") && (
-            <SettingsTab />
-          )}
+          {activeTab === "overview"  && <OverviewTab />}
+          {activeTab === "revenue"   && <RevenueTab />}
+          {activeTab === "users"     && <UsersTab />}
+          {activeTab === "sessions"  && <SessionsTab />}
+          {activeTab === "analytics" && <AnalyticsTab />}
+          {activeTab === "reports"   && <ReportsTab />}
+          {activeTab === "alerts"    && <AlertsTab />}
+          {activeTab === "help"      && <HelpTab />}
+          {activeTab === "settings"  && <SettingsTab />}
         </div>
       </main>
     </div>
   );
 }
 
+// ─────────────────────────────────────────────
+// Shared loading skeleton
+// ─────────────────────────────────────────────
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-800 rounded-xl ${className ?? ""}`} />;
+}
+
+// ─────────────────────────────────────────────
+// Overview Tab
+// ─────────────────────────────────────────────
 function OverviewTab() {
+  const { data, loading, filteredSeries } = useDashboard();
+
+  if (loading) return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-36" />)}
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Skeleton className="xl:col-span-2 h-80" /><Skeleton className="h-80" />
+      </div>
+    </div>
+  );
+  if (!data) return null;
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {kpiMetrics.map((metric, i) => (
-          <KPICard key={metric.id} metric={metric} index={i} />
-        ))}
+        {data.kpi.map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
-
-      {/* Main Chart + Pie */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <RevenueChart data={timeSeriesData} />
-        </div>
-        <TrafficPieChart data={trafficSourceData} />
+        <div className="xl:col-span-2"><RevenueChart data={filteredSeries} /></div>
+        <TrafficPieChart />
       </div>
-
-      {/* Funnel + Bar + Activity */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <ConversionFunnel data={conversionFunnelData} />
-        <BarMetricChart data={timeSeriesData} />
-        <ActivityFeed events={recentEvents} />
+        <ConversionFunnel />
+        <BarMetricChart />
+        <ActivityFeed />
       </div>
-
-      {/* Top Pages */}
-      <TopPagesTable data={topPages} />
+      <TopPagesTable />
     </div>
   );
 }
 
+// ─────────────────────────────────────────────
+// Revenue Tab
+// ─────────────────────────────────────────────
 function RevenueTab() {
+  const { data, loading, filteredSeries } = useDashboard();
+  if (loading) return <Skeleton className="h-96 w-full" />;
+  if (!data) return null;
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {kpiMetrics.slice(0, 4).map((metric, i) => (
-          <KPICard key={metric.id} metric={metric} index={i} />
-        ))}
+        {data.kpi.slice(0,4).map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
-      <RevenueChart data={timeSeriesData} />
+      <RevenueChart data={filteredSeries} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <BarMetricChart data={timeSeriesData} />
-        <ConversionFunnel data={conversionFunnelData} />
+        <ConversionFunnel />
+        <BarMetricChart />
       </div>
     </div>
   );
 }
 
+// ─────────────────────────────────────────────
+// Users Tab
+// ─────────────────────────────────────────────
 function UsersTab() {
+  const { data, loading, filteredSeries } = useDashboard();
+  if (loading) return <Skeleton className="h-96 w-full" />;
+  if (!data) return null;
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {[kpiMetrics[1], kpiMetrics[2], kpiMetrics[3]].map((metric, i) => (
-          <KPICard key={metric.id} metric={metric} index={i} />
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[data.kpi[1], data.kpi[2], data.kpi[3], data.kpi[5]].map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <RevenueChart data={timeSeriesData} />
-        </div>
-        <ActivityFeed events={recentEvents} />
+        <div className="xl:col-span-2"><RevenueChart data={filteredSeries} /></div>
+        <ActivityFeed />
       </div>
-      <TopPagesTable data={topPages} />
+      <TopPagesTable />
     </div>
   );
 }
 
-function AnalyticsTab() {
+// ─────────────────────────────────────────────
+// Sessions Tab — own content (not duplicate of Analytics)
+// ─────────────────────────────────────────────
+function SessionsTab() {
+  const { data, loading, filteredSeries } = useDashboard();
+  if (loading) return <Skeleton className="h-96 w-full" />;
+  if (!data) return null;
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* sessions-focused KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {[data.kpi[2], data.kpi[1], data.kpi[3]].map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
+      </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <RevenueChart data={timeSeriesData} />
+        <BarMetricChart />
+        <TrafficPieChart />
+      </div>
+      <TopPagesTable />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Analytics Tab
+// ─────────────────────────────────────────────
+function AnalyticsTab() {
+  const { data, loading, filteredSeries } = useDashboard();
+  if (loading) return <Skeleton className="h-96 w-full" />;
+  if (!data) return null;
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {data.kpi.map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <RevenueChart data={filteredSeries} />
         <div className="space-y-6">
-          <TrafficPieChart data={trafficSourceData} />
-          <BarMetricChart data={timeSeriesData} />
+          <TrafficPieChart />
+          <BarMetricChart />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ConversionFunnel data={conversionFunnelData} />
-        <ActivityFeed events={recentEvents} />
+        <ConversionFunnel />
+        <ActivityFeed />
       </div>
     </div>
   );
