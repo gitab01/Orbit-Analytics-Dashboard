@@ -75,7 +75,7 @@ export const kpiMetrics: KPIMetric[] = [
   {
     id: "mrr",
     label: "Monthly Revenue",
-    value: "$84,320",
+    value: "ETB 84,320",
     change: "+12.5%",
     trend: "up",
     icon: "DollarSign",
@@ -111,7 +111,7 @@ export const kpiMetrics: KPIMetric[] = [
   {
     id: "arpu",
     label: "Avg Revenue / User",
-    value: "$3.50",
+    value: "ETB 3.50",
     change: "+4.1%",
     trend: "up",
     icon: "BarChart2",

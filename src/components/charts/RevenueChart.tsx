@@ -15,7 +15,7 @@ import type { ChartDataPoint } from "@/lib/mockData";
 import clsx from "clsx";
 
 const metrics = [
-  { key: "revenue", label: "Revenue", color: "#15b382", formatter: (v: number) => `$${(v / 1000).toFixed(1)}k` },
+  { key: "revenue", label: "Revenue", color: "#15b382", formatter: (v: number) => `ETB ${(v / 1000).toFixed(1)}k` },
   { key: "users",   label: "Users",   color: "#3b82f6", formatter: (v: number) => v.toLocaleString() },
   { key: "sessions",label: "Sessions",color: "#a855f7", formatter: (v: number) => v.toLocaleString() },
 ];
@@ -35,7 +35,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             <span className="text-gray-400 capitalize">{entry.dataKey}:</span>
             <span className="text-white font-medium">
               {entry.dataKey === "revenue"
-                ? `$${(entry.value / 1000).toFixed(1)}k`
+                ? `ETB ${(entry.value / 1000).toFixed(1)}k`
                 : entry.value.toLocaleString()}
             </span>
           </div>
