@@ -12,6 +12,7 @@ export async function middleware(req: NextRequest) {
   if (
     pathname === "/login" ||
     pathname === "/signup" ||
+    pathname === "/forgot-password" ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.includes(".")

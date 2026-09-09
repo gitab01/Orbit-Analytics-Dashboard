@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { db, hasDB } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-// POST — upload avatar as base64 data URL stored in profiles table
+// Store avatar as base64 data URL in the profiles table
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
@@ -17,17 +17,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only JPG, PNG, WEBP or GIF allowed" }, { status: 400 });
     }
 
-    const buffer = await file.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    const buffer   = await file.arrayBuffer();
+    const base64   = Buffer.from(buffer).toString("base64");
+    const dataUrl  = `data:${file.type};base64,${base64}`;
 
-    // Store in profiles — add avatar_url column if it doesn't exist
-    await sql`
-      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT
-    `;
-    await sql`
-      UPDATE profiles SET avatar_url = ${dataUrl} WHERE user_id = ${userId}
-    `;
+    if (hasDB) {
+      try { await db()`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`; } catch {}
+      await db()`UPDATE profiles SET avatar_url = ${dataUrl} WHERE user_id = ${userId}`;
+    }
+    // In-memory: just return the data URL — client will display it
 
     return NextResponse.json({ ok: true, avatarUrl: dataUrl });
   } catch (err) {
@@ -36,16 +34,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET — return the current avatar URL
 export async function GET() {
   try {
     const session = await getSession();
     const userId  = session?.id ?? "u1";
 
-    // Ensure column exists
-    await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
-    const rows = await sql`SELECT avatar_url FROM profiles WHERE user_id = ${userId}`;
-    return NextResponse.json({ avatarUrl: rows[0]?.avatar_url ?? null });
+    if (hasDB) {
+      try { await db()`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`; } catch {}
+      const rows = await db()`SELECT avatar_url FROM profiles WHERE user_id = ${userId}`;
+      return NextResponse.json({ avatarUrl: rows[0]?.avatar_url ?? null });
+    }
+    return NextResponse.json({ avatarUrl: null });
   } catch (err) {
     console.error("[avatar GET]", err);
     return NextResponse.json({ avatarUrl: null });
