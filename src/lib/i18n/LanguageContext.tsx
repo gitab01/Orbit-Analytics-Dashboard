@@ -25,18 +25,26 @@ function interpolate(str: string, vars?: Record<string, string | number>): strin
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState("English (US)");
 
-  // Load from profile API on mount
+  // Load from localStorage first (instant, no flash), then sync from profile API
   useEffect(() => {
+    const stored = localStorage.getItem("orbit-language");
+    if (stored) setLanguageState(stored);
+
     fetch("/api/profile")
       .then(r => r.json())
-      .then(d => { if (d.profile?.language) setLanguageState(d.profile.language); })
+      .then(d => {
+        if (d.profile?.language) {
+          setLanguageState(d.profile.language);
+          localStorage.setItem("orbit-language", d.profile.language);
+        }
+      })
       .catch(() => {});
   }, []);
 
   const setLanguage = useCallback((lang: string) => {
     setLanguageState(lang);
-    // Update html lang attribute for accessibility
-    const dict = TRANSLATIONS[lang] ?? {};
+    localStorage.setItem("orbit-language", lang);
+    // Update html lang + direction for accessibility / RTL languages
     const isRTL = ["Arabic (العربية)", "Hebrew (עברית)", "Persian (فارسی)", "Urdu (اردو)", "ar", "he", "fa", "ur"].includes(lang);
     document.documentElement.lang = lang;
     document.documentElement.dir  = isRTL ? "rtl" : "ltr";

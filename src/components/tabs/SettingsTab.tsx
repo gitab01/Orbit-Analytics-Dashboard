@@ -102,10 +102,11 @@ export default function SettingsTab() {
   const savePrefs = async () => {
     if (!profile) return;
     setSaving(true);
+    // Apply language immediately — don't wait for API round-trip
+    setLanguage(profile.language);
     try {
       const res = await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
       if (res.ok) {
-        setLanguage(profile.language); // apply language system-wide immediately
         toast("success", t("settings.prefsSaved"));
       } else toast("error", t("settings.prefsFailed"));
     } finally { setSaving(false); }
@@ -290,10 +291,13 @@ export default function SettingsTab() {
                 </select>
               </div>
 
-              {/* Language — changes UI live on save */}
+              {/* Language — changes UI live on selection */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t("settings.language")}</label>
-                <select value={resolveLanguage(profile.language)} onChange={e => setProfile(p => p ? { ...p, language: e.target.value } : p)} className={clsx(FIELD,"w-full cursor-pointer")}>
+                <select value={resolveLanguage(profile.language)} onChange={e => {
+                  setProfile(p => p ? { ...p, language: e.target.value } : p);
+                  setLanguage(e.target.value); // live preview — instant UI update
+                }} className={clsx(FIELD,"w-full cursor-pointer")}>
                   {LANGUAGE_GROUPS.map(({ group, langs }) => (
                     <optgroup key={group} label={group}>
                       {langs.map(lang => <option key={lang} value={lang}>{lang}</option>)}
