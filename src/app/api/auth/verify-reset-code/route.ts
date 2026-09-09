@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isValidEmail } from "@/lib/validate";
 import { verifyResetCode } from "@/lib/resetTokens";
-import { markEmailVerified } from "@/app/api/auth/reset-password/route";
+import { markEmailVerified } from "@/lib/resetVerified";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,9 +24,21 @@ export async function POST(req: NextRequest) {
       markEmailVerified(cleanEmail); // allow password reset for next 10 min
       return NextResponse.json({ ok: true });
     }
-    if (result === "expired")           return NextResponse.json({ error: "This code has expired. Please request a new one." }, { status: 400 });
-    if (result === "too_many_attempts") return NextResponse.json({ error: "Too many attempts. Please request a new code." }, { status: 429 });
-    return NextResponse.json({ error: "Invalid code. Please check and try again." }, { status: 400 });
+    if (result === "expired")
+      return NextResponse.json(
+        { error: "This code has expired. Please request a new one." },
+        { status: 400 }
+      );
+    if (result === "too_many_attempts")
+      return NextResponse.json(
+        { error: "Too many attempts. Please request a new code." },
+        { status: 429 }
+      );
+
+    return NextResponse.json(
+      { error: "Invalid code. Please check and try again." },
+      { status: 400 }
+    );
   } catch (err) {
     console.error("[verify-reset-code]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
