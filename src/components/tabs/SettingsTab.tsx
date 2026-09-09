@@ -5,14 +5,99 @@ import clsx from "clsx";
 import { useToast } from "@/components/Toast";
 import type { Profile, Notifications, TeamMember, MemberRole, Integration } from "@/lib/store";
 
+// ── Language groups — value IS the display label so DB storage is human-readable ──
+const LANGUAGE_GROUPS: { group: string; langs: string[] }[] = [
+  {
+    group: "🇪🇹 Ethiopian Languages",
+    langs: [
+      "Amharic (አማርኛ)",
+      "Tigrigna (ትግርኛ)",
+      "Oromiffa (Afaan Oromoo)",
+      "Somali (Soomaali)",
+      "Sidamegna (Sidaamu Afoo)",
+      "Afar (Qafaraf)",
+      "Hadiyya",
+      "Wolaytta",
+      "Gurage",
+    ],
+  },
+  {
+    group: "🌍 European Languages",
+    langs: [
+      "English (US)",
+      "English (UK)",
+      "French (Français)",
+      "Spanish (Español)",
+      "Portuguese (Português)",
+      "German (Deutsch)",
+      "Italian (Italiano)",
+      "Russian (Русский)",
+      "Dutch (Nederlands)",
+      "Polish (Polski)",
+      "Swedish (Svenska)",
+      "Norwegian (Norsk)",
+      "Danish (Dansk)",
+      "Finnish (Suomi)",
+      "Greek (Ελληνικά)",
+      "Ukrainian (Українська)",
+      "Romanian (Română)",
+      "Hungarian (Magyar)",
+      "Czech (Čeština)",
+      "Slovak (Slovenčina)",
+      "Bulgarian (Български)",
+      "Croatian (Hrvatski)",
+      "Serbian (Српски)",
+    ],
+  },
+  {
+    group: "🕌 Middle East & Central Asia",
+    langs: [
+      "Arabic (العربية)",
+      "Hebrew (עברית)",
+      "Persian (فارسی)",
+      "Turkish (Türkçe)",
+      "Urdu (اردو)",
+    ],
+  },
+  {
+    group: "🌏 Asia Pacific",
+    langs: [
+      "Chinese Simplified (中文简体)",
+      "Chinese Traditional (中文繁體)",
+      "Japanese (日本語)",
+      "Korean (한국어)",
+      "Hindi (हिन्दी)",
+      "Bengali (বাংলা)",
+      "Indonesian (Bahasa Indonesia)",
+      "Malay (Bahasa Melayu)",
+      "Thai (ภาษาไทย)",
+      "Vietnamese (Tiếng Việt)",
+    ],
+  },
+  {
+    group: "🌍 Africa",
+    langs: [
+      "Swahili (Kiswahili)",
+      "Hausa",
+      "Yoruba",
+      "Igbo",
+      "Zulu (isiZulu)",
+      "Afrikaans",
+    ],
+  },
+];
+
+// All language labels flat — for fallback check
+const ALL_LANGUAGES = LANGUAGE_GROUPS.flatMap(g => g.langs);
+
 const SECTIONS = [
-  { id:"profile",       label:"Profile",        icon:User     },
-  { id:"notifications", label:"Notifications",  icon:Bell     },
-  { id:"preferences",   label:"Preferences",    icon:Palette  },
-  { id:"security",      label:"Security",       icon:Lock     },
-  { id:"billing",       label:"Billing",        icon:CreditCard},
-  { id:"team",          label:"Team",           icon:Users    },
-  { id:"integrations",  label:"Integrations",   icon:Link     },
+  { id: "profile",       label: "Profile",       icon: User       },
+  { id: "notifications", label: "Notifications", icon: Bell       },
+  { id: "preferences",   label: "Preferences",   icon: Palette    },
+  { id: "security",      label: "Security",       icon: Lock       },
+  { id: "billing",       label: "Billing",        icon: CreditCard },
+  { id: "team",          label: "Team",           icon: Users      },
+  { id: "integrations",  label: "Integrations",   icon: Link       },
 ];
 
 const FIELD = "px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-brand-500 transition-all";
@@ -20,23 +105,22 @@ const CARD  = "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray
 
 export default function SettingsTab() {
   const { toast } = useToast();
-  const [section, setSection]   = useState("profile");
-
-  const [profile,  setProfile]  = useState<Profile | null>(null);
-  const [notifs,   setNotifs]   = useState<Notifications | null>(null);
-  const [saving,   setSaving]   = useState(false);
-
-  const [showPw,   setShowPw]   = useState(false);
-  const [pw,       setPw]       = useState({ current:"", next:"", confirm:"" });
-
-  const [team,     setTeam]     = useState<TeamMember[]>([]);
-  const [invite,   setInvite]   = useState({ name:"", email:"", role:"Viewer" as MemberRole });
-  const [showInvite, setShowInvite] = useState(false);
-
+  const [section,     setSection]     = useState("profile");
+  const [profile,     setProfile]     = useState<Profile | null>(null);
+  const [notifs,      setNotifs]      = useState<Notifications | null>(null);
+  const [saving,      setSaving]      = useState(false);
+  const [showPw,      setShowPw]      = useState(false);
+  const [pw,          setPw]          = useState({ current: "", next: "", confirm: "" });
+  const [team,        setTeam]        = useState<TeamMember[]>([]);
+  const [invite,      setInvite]      = useState({ name: "", email: "", role: "Viewer" as MemberRole });
+  const [showInvite,  setShowInvite]  = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
 
   useEffect(() => {
-    fetch("/api/profile").then(r => r.json()).then(d => { setProfile(d.profile); setNotifs(d.notifications); });
+    fetch("/api/profile").then(r => r.json()).then(d => {
+      setProfile(d.profile);
+      setNotifs(d.notifications);
+    });
     fetch("/api/team").then(r => r.json()).then(d => setTeam(d.team));
     fetch("/api/integrations").then(r => r.json()).then(d => setIntegrations(d.integrations));
   }, []);
@@ -45,8 +129,13 @@ export default function SettingsTab() {
     if (!profile) return;
     setSaving(true);
     try {
-      await fetch("/api/profile", { method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(profile) });
-      toast("success", "Profile saved successfully");
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      if (res.ok) toast("success", "Profile saved");
+      else toast("error", "Failed to save profile");
     } finally { setSaving(false); }
   };
 
@@ -54,7 +143,11 @@ export default function SettingsTab() {
     if (!notifs) return;
     setSaving(true);
     try {
-      await fetch("/api/profile", { method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ type:"notifications", data: notifs }) });
+      await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "notifications", data: notifs }),
+      });
       toast("success", "Notification preferences saved");
     } finally { setSaving(false); }
   };
@@ -63,52 +156,91 @@ export default function SettingsTab() {
     if (!profile) return;
     setSaving(true);
     try {
-      await fetch("/api/profile", { method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(profile) });
-      toast("success", "Preferences saved");
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      if (res.ok) toast("success", "Preferences saved");
+      else toast("error", "Failed to save preferences");
     } finally { setSaving(false); }
   };
 
   const changePassword = () => {
-    if (!pw.current) { toast("error", "Enter current password"); return; }
-    if (pw.next.length < 8) { toast("error", "New password must be at least 8 characters"); return; }
-    if (pw.next !== pw.confirm) { toast("error", "Passwords do not match"); return; }
+    if (!pw.current)             { toast("error", "Enter current password"); return; }
+    if (pw.next.length < 8)      { toast("error", "New password must be at least 8 characters"); return; }
+    if (pw.next !== pw.confirm)  { toast("error", "Passwords do not match"); return; }
     toast("success", "Password updated successfully");
-    setPw({ current:"", next:"", confirm:"" });
+    setPw({ current: "", next: "", confirm: "" });
   };
 
   const inviteMember = async () => {
     if (!invite.name || !invite.email) { toast("error", "Name and email are required"); return; }
-    const res  = await fetch("/api/team", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(invite) });
+    const res  = await fetch("/api/team", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invite),
+    });
     const data = await res.json();
     setTeam(prev => [...prev, data]);
-    setInvite({ name:"", email:"", role:"Viewer" });
+    setInvite({ name: "", email: "", role: "Viewer" });
     setShowInvite(false);
     toast("success", `${data.name} invited as ${data.role}`);
   };
 
   const changeRole = async (id: string, role: MemberRole) => {
-    await fetch("/api/team", { method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ id, role }) });
+    await fetch("/api/team", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, role }),
+    });
     setTeam(prev => prev.map(m => m.id === id ? { ...m, role } : m));
     toast("success", "Role updated");
   };
 
   const removeMember = async (id: string, name: string) => {
-    await fetch("/api/team", { method:"DELETE", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ id }) });
+    await fetch("/api/team", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
     setTeam(prev => prev.filter(m => m.id !== id));
     toast("success", `${name} removed`);
   };
 
   const toggleIntegration = async (id: string) => {
-    const res  = await fetch("/api/integrations", { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ id }) });
+    const res  = await fetch("/api/integrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
     const data = await res.json();
     setIntegrations(prev => prev.map(i => i.id === id ? data : i));
     toast("success", data.connected ? `${data.name} connected` : `${data.name} disconnected`);
   };
 
+  // Resolve language: if the stored value isn't in the list (e.g. old BCP-47 code),
+  // map common codes to display labels, otherwise fall back to "English (US)"
+  const resolveLanguage = (lang: string): string => {
+    if (!lang) return "English (US)";
+    if (ALL_LANGUAGES.includes(lang)) return lang;
+    // legacy BCP-47 → display label fallback map
+    const fallback: Record<string, string> = {
+      "en-US": "English (US)", "en-GB": "English (UK)",
+      "am": "Amharic (አማርኛ)",  "ti": "Tigrigna (ትግርኛ)",
+      "om": "Oromiffa (Afaan Oromoo)", "so": "Somali (Soomaali)",
+      "sid": "Sidamegna (Sidaamu Afoo)", "aa": "Afar (Qafaraf)",
+      "fr": "French (Français)", "es": "Spanish (Español)",
+      "de": "German (Deutsch)", "ar": "Arabic (العربية)",
+      "zh-CN": "Chinese Simplified (中文简体)", "ja": "Japanese (日本語)",
+    };
+    return fallback[lang] ?? "English (US)";
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-6 animate-fade-in">
 
-      {/* Nav */}
+      {/* Sidebar nav */}
       <aside className="md:w-52 md:flex-shrink-0">
         <nav className="flex md:flex-col gap-1 overflow-x-auto pb-1 md:pb-0 md:sticky md:top-24 scrollbar-none">
           {SECTIONS.map(({ id, label, icon: Icon }) => (
@@ -119,22 +251,21 @@ export default function SettingsTab() {
                   ? "bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-500/20"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border-transparent"
               )}>
-              <Icon size={14} className="md:w-[15px] md:h-[15px]" />{label}
+              <Icon size={14} />{label}
             </button>
           ))}
         </nav>
       </aside>
 
-      {/* Content */}
       <div className="flex-1 min-w-0 space-y-5">
 
-        {/* PROFILE */}
+        {/* ── PROFILE ── */}
         {section === "profile" && profile && (
           <div className={clsx(CARD, "p-6 space-y-5")}>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Profile Settings</h3>
             <div className="flex items-center gap-5">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-400 to-blue-500 flex items-center justify-center text-xl font-bold text-white flex-shrink-0">
-                {profile.firstName[0]}{profile.lastName[0]}
+                {profile.firstName?.[0]}{profile.lastName?.[0]}
               </div>
               <div>
                 <button className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Upload Photo</button>
@@ -144,15 +275,20 @@ export default function SettingsTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(["firstName","lastName","email","jobTitle","company","timezone"] as (keyof Profile)[]).map(k => (
                 <div key={k}>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 capitalize">{k.replace(/([A-Z])/g," $1")}</label>
-                  <input value={(profile as any)[k]} onChange={e => setProfile(p => p ? { ...p, [k]: e.target.value } : p)}
-                    className={clsx(FIELD, "w-full")} />
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 capitalize">
+                    {k.replace(/([A-Z])/g, " $1")}
+                  </label>
+                  <input
+                    value={(profile as any)[k] ?? ""}
+                    onChange={e => setProfile(p => p ? { ...p, [k]: e.target.value } : p)}
+                    className={clsx(FIELD, "w-full")}
+                  />
                 </div>
               ))}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Bio</label>
-              <textarea rows={3} value={profile.bio} onChange={e => setProfile(p => p ? { ...p, bio: e.target.value } : p)}
+              <textarea rows={3} value={profile.bio ?? ""} onChange={e => setProfile(p => p ? { ...p, bio: e.target.value } : p)}
                 className={clsx(FIELD, "w-full resize-none")} />
             </div>
             <button onClick={saveProfile} disabled={saving}
@@ -162,7 +298,7 @@ export default function SettingsTab() {
           </div>
         )}
 
-        {/* NOTIFICATIONS */}
+        {/* ── NOTIFICATIONS ── */}
         {section === "notifications" && notifs && (
           <div className={clsx(CARD, "p-6 space-y-4")}>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notification Preferences</h3>
@@ -170,14 +306,18 @@ export default function SettingsTab() {
               <div key={k} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">{k.replace(/([A-Z])/g," $1")} Notifications</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{
-                    { email:"Receive alerts and reports via email", slack:"Send alerts to your Slack workspace", browser:"Desktop push notifications",
-                      weekly:"Summary every Monday", monthly:"Report on the 1st of each month", alerts:"Notify on metric thresholds" }[k]
-                  }</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{{
+                    email:"Receive alerts and reports via email",
+                    slack:"Send alerts to your Slack workspace",
+                    browser:"Desktop push notifications",
+                    weekly:"Summary every Monday",
+                    monthly:"Report on the 1st of each month",
+                    alerts:"Notify on metric thresholds",
+                  }[k]}</p>
                 </div>
                 <button onClick={() => setNotifs(n => n ? { ...n, [k]: !n[k] } : n)}
                   className={clsx("relative rounded-full transition-colors flex-shrink-0", notifs[k] ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-700")}
-                  style={{ height:22, width:40 }}>
+                  style={{ height: 22, width: 40 }}>
                   <span className={clsx("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all", notifs[k] ? "left-5" : "left-0.5")} />
                 </button>
               </div>
@@ -189,7 +329,7 @@ export default function SettingsTab() {
           </div>
         )}
 
-        {/* PREFERENCES */}
+        {/* ── PREFERENCES ── */}
         {section === "preferences" && profile && (
           <div className={clsx(CARD, "p-6 space-y-5")}>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Display &amp; Preferences</h3>
@@ -198,99 +338,93 @@ export default function SettingsTab() {
               {/* Currency */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Currency</label>
-                <select value={profile.currency} onChange={e => setProfile(p => p ? { ...p, currency: e.target.value } : p)}
+                <select
+                  value={profile.currency ?? "USD"}
+                  onChange={e => setProfile(p => p ? { ...p, currency: e.target.value } : p)}
                   className={clsx(FIELD, "w-full cursor-pointer")}>
-                  {["ETB","USD","EUR","GBP","KES","JPY","CNY","INR","AUD","CAD","CHF","BRL","MXN","NGN","ZAR","EGP","SAR","AED","TRY","SGD"].map(o => <option key={o}>{o}</option>)}
+                  {["ETB","USD","EUR","GBP","KES","JPY","CNY","INR","AUD","CAD","CHF","BRL","MXN","NGN","ZAR","EGP","SAR","AED","TRY","SGD"].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
               </div>
 
-              {/* Language — grouped optgroup */}
+              {/* Language — grouped, value = display label (no BCP-47 mismatch) */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Language</label>
-                <select value={profile.language} onChange={e => setProfile(p => p ? { ...p, language: e.target.value } : p)}
+                <select
+                  value={resolveLanguage(profile.language)}
+                  onChange={e => setProfile(p => p ? { ...p, language: e.target.value } : p)}
                   className={clsx(FIELD, "w-full cursor-pointer")}>
-                  <optgroup label="── Ethiopian Languages ──">
-                    <option>Amharic (አማርኛ)</option>
-                    <option>Tigrigna (ትግርኛ)</option>
-                    <option>Oromiffa (Afaan Oromoo)</option>
-                    <option>Somali (Soomaali)</option>
-                    <option>Sidamegna (Sidaamu Afoo)</option>
-                    <option>Afar (Qafaraf)</option>
-                    <option>Hadiyya</option>
-                    <option>Wolaytta</option>
-                    <option>Gurage</option>
-                  </optgroup>
-                  <optgroup label="── European Languages ──">
-                    <option>English (US)</option>
-                    <option>English (UK)</option>
-                    <option>French (Français)</option>
-                    <option>Spanish (Español)</option>
-                    <option>Portuguese (Português)</option>
-                    <option>German (Deutsch)</option>
-                    <option>Italian (Italiano)</option>
-                    <option>Russian (Русский)</option>
-                    <option>Dutch (Nederlands)</option>
-                    <option>Polish (Polski)</option>
-                    <option>Swedish (Svenska)</option>
-                    <option>Norwegian (Norsk)</option>
-                    <option>Danish (Dansk)</option>
-                    <option>Finnish (Suomi)</option>
-                    <option>Greek (Ελληνικά)</option>
-                    <option>Ukrainian (Українська)</option>
-                    <option>Romanian (Română)</option>
-                    <option>Hungarian (Magyar)</option>
-                    <option>Czech (Čeština)</option>
-                    <option>Slovak (Slovenčina)</option>
-                    <option>Bulgarian (Български)</option>
-                    <option>Croatian (Hrvatski)</option>
-                    <option>Serbian (Српски)</option>
-                  </optgroup>
-                  <optgroup label="── Middle East & Central Asia ──">
-                    <option>Arabic (العربية)</option>
-                    <option>Hebrew (עברית)</option>
-                    <option>Persian (فارسی)</option>
-                    <option>Turkish (Türkçe)</option>
-                    <option>Urdu (اردو)</option>
-                  </optgroup>
-                  <optgroup label="── Asia Pacific ──">
-                    <option>Chinese Simplified (中文简体)</option>
-                    <option>Chinese Traditional (中文繁體)</option>
-                    <option>Japanese (日本語)</option>
-                    <option>Korean (한국어)</option>
-                    <option>Hindi (हिन्दी)</option>
-                    <option>Bengali (বাংলা)</option>
-                    <option>Indonesian (Bahasa Indonesia)</option>
-                    <option>Malay (Bahasa Melayu)</option>
-                    <option>Thai (ภาษาไทย)</option>
-                    <option>Vietnamese (Tiếng Việt)</option>
-                  </optgroup>
-                  <optgroup label="── Africa ──">
-                    <option>Swahili (Kiswahili)</option>
-                    <option>Hausa</option>
-                    <option>Yoruba</option>
-                    <option>Igbo</option>
-                    <option>Zulu (isiZulu)</option>
-                    <option>Afrikaans</option>
-                  </optgroup>
+                  {LANGUAGE_GROUPS.map(({ group, langs }) => (
+                    <optgroup key={group} label={group}>
+                      {langs.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                  Currently: <span className="text-gray-600 dark:text-gray-300 font-medium">{resolveLanguage(profile.language)}</span>
+                </p>
+              </div>
+
+              {/* Date Format */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Date Format</label>
+                <select
+                  value={profile.dateFormat ?? "MMM DD, YYYY"}
+                  onChange={e => setProfile(p => p ? { ...p, dateFormat: e.target.value } : p)}
+                  className={clsx(FIELD, "w-full cursor-pointer")}>
+                  {["MMM DD, YYYY","DD/MM/YYYY","YYYY-MM-DD","MM-DD-YYYY"].map(o => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
                 </select>
               </div>
 
-              {/* Remaining preferences */}
-              {([
-                { key:"dateFormat",  label:"Date Format",  opts:["MMM DD, YYYY","DD/MM/YYYY","YYYY-MM-DD"] },
-                { key:"fiscalYear",  label:"Fiscal Year",  opts:["January","July","April","October"] },
-                { key:"defaultView", label:"Default View", opts:["Overview","Revenue","Users","Analytics"] },
-                { key:"refreshRate", label:"Refresh Rate (seconds)", opts:["30","60","120","300"] },
-              ] as { key: keyof Profile; label: string; opts: string[] }[]).map(({ key, label, opts }) => (
-                <div key={key}>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{label}</label>
-                  <select value={(profile as any)[key]} onChange={e => setProfile(p => p ? { ...p, [key]: e.target.value } : p)}
-                    className={clsx(FIELD, "w-full cursor-pointer")}>
-                    {opts.map(o => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-              ))}
+              {/* Fiscal Year */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Fiscal Year Start</label>
+                <select
+                  value={profile.fiscalYear ?? "January"}
+                  onChange={e => setProfile(p => p ? { ...p, fiscalYear: e.target.value } : p)}
+                  className={clsx(FIELD, "w-full cursor-pointer")}>
+                  {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Default View */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Default View</label>
+                <select
+                  value={profile.defaultView ?? "Overview"}
+                  onChange={e => setProfile(p => p ? { ...p, defaultView: e.target.value } : p)}
+                  className={clsx(FIELD, "w-full cursor-pointer")}>
+                  {["Overview","Revenue","Users","Sessions","Analytics","Reports"].map(v => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Refresh Rate */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Auto-Refresh Rate</label>
+                <select
+                  value={profile.refreshRate ?? "60"}
+                  onChange={e => setProfile(p => p ? { ...p, refreshRate: e.target.value } : p)}
+                  className={clsx(FIELD, "w-full cursor-pointer")}>
+                  <option value="30">Every 30 seconds</option>
+                  <option value="60">Every 60 seconds</option>
+                  <option value="120">Every 2 minutes</option>
+                  <option value="300">Every 5 minutes</option>
+                  <option value="0">Manual only</option>
+                </select>
+              </div>
+
             </div>
+
+            {/* Theme */}
             <div>
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Theme</p>
               <div className="flex gap-3">
@@ -304,31 +438,37 @@ export default function SettingsTab() {
                 ))}
               </div>
             </div>
+
             <button onClick={savePrefs} disabled={saving}
               className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-60 transition-colors">
-              <Save size={14} /> Save Preferences
+              {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving…</> : <><Save size={14} /> Save Preferences</>}
             </button>
           </div>
         )}
 
-        {/* SECURITY */}
+        {/* ── SECURITY ── */}
         {section === "security" && (
           <div className={clsx(CARD, "p-6 space-y-5")}>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Security Settings</h3>
             <div className="space-y-4">
               {([
-                { label:"Current Password", key:"current" as const, ph:"••••••••" },
-                { label:"New Password",     key:"next"    as const, ph:"Min. 8 characters" },
-                { label:"Confirm Password", key:"confirm" as const, ph:"Repeat new password" },
+                { label: "Current Password", key: "current" as const, ph: "••••••••"           },
+                { label: "New Password",      key: "next"    as const, ph: "Min. 8 characters"  },
+                { label: "Confirm Password",  key: "confirm" as const, ph: "Repeat new password"},
               ]).map(({ label, key, ph }) => (
                 <div key={key}>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{label}</label>
                   <div className="relative">
-                    <input type={showPw ? "text" : "password"} placeholder={ph} value={pw[key]}
+                    <input
+                      type={showPw ? "text" : "password"}
+                      placeholder={ph}
+                      value={pw[key]}
                       onChange={e => setPw(p => ({ ...p, [key]: e.target.value }))}
-                      className={clsx(FIELD, "w-full pr-10")} />
+                      className={clsx(FIELD, "w-full pr-10")}
+                    />
                     {key === "current" && (
-                      <button onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                      <button onClick={() => setShowPw(!showPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                         {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     )}
@@ -349,19 +489,21 @@ export default function SettingsTab() {
                 <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 text-xs font-medium rounded-full">Not enabled</span>
               </div>
               <button onClick={() => toast("info", "2FA setup: check your email for a verification code")}
-                className="mt-3 w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-white rounded-lg transition-colors">Enable 2FA</button>
+                className="mt-3 w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-white rounded-lg transition-colors">
+                Enable 2FA
+              </button>
             </div>
           </div>
         )}
 
-        {/* BILLING */}
+        {/* ── BILLING ── */}
         {section === "billing" && profile && (
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { name:"Starter",    price:"Free",            features:["3 dashboards","7-day history","Email alerts"],              current:false },
-                { name:"Pro",        price:`${profile.currency} 999/mo`, features:["Unlimited dashboards","90-day history","All channels"], current:true  },
-                { name:"Enterprise", price:"Custom",           features:["Custom SLA","1yr history","Dedicated support"],            current:false },
+                { name:"Starter",    price:"Free",                          features:["3 dashboards","7-day history","Email alerts"],              current:false },
+                { name:"Pro",        price:`${profile.currency ?? "USD"} 999/mo`, features:["Unlimited dashboards","90-day history","All channels"], current:true  },
+                { name:"Enterprise", price:"Custom",                        features:["Custom SLA","1yr history","Dedicated support"],            current:false },
               ].map(plan => (
                 <div key={plan.name} className={clsx(CARD, "p-5 transition-all", plan.current && "ring-1 ring-brand-500/30 border-brand-300 dark:border-brand-500/40")}>
                   {plan.current && <span className="inline-block mb-3 px-2.5 py-0.5 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20 text-xs font-medium rounded-full">Current Plan</span>}
@@ -374,11 +516,10 @@ export default function SettingsTab() {
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => plan.current ? null : toast("info", plan.name === "Enterprise" ? "Sales team will contact you shortly" : `Upgrading to ${plan.name}…`)}
+                  <button
+                    onClick={() => plan.current ? null : toast("info", plan.name === "Enterprise" ? "Sales team will contact you shortly" : `Upgrading to ${plan.name}…`)}
                     className={clsx("w-full py-2 text-sm rounded-lg font-medium transition-colors",
-                      plan.current
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
-                        : "bg-brand-500 text-white hover:bg-brand-600"
+                      plan.current ? "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600"
                     )}>
                     {plan.current ? "Current Plan" : plan.name === "Enterprise" ? "Contact Sales" : "Upgrade"}
                   </button>
@@ -399,7 +540,7 @@ export default function SettingsTab() {
                     <p className="text-xs text-gray-500">{inv.date}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{profile.currency} 999</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{profile.currency ?? "USD"} 999</span>
                     <span className="px-2 py-0.5 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20 text-xs rounded-full">Paid</span>
                   </div>
                 </div>
@@ -408,7 +549,7 @@ export default function SettingsTab() {
           </div>
         )}
 
-        {/* TEAM */}
+        {/* ── TEAM ── */}
         {section === "team" && (
           <div className={CARD}>
             <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-800">
@@ -421,16 +562,12 @@ export default function SettingsTab() {
                 <Plus size={13} /> Invite
               </button>
             </div>
-
             {showInvite && (
               <div className="p-5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input placeholder="Full name" value={invite.name} onChange={e => setInvite(p => ({ ...p, name: e.target.value }))}
-                    className={clsx(FIELD, "w-full")} />
-                  <input placeholder="Email address" type="email" value={invite.email} onChange={e => setInvite(p => ({ ...p, email: e.target.value }))}
-                    className={clsx(FIELD, "w-full")} />
-                  <select value={invite.role} onChange={e => setInvite(p => ({ ...p, role: e.target.value as MemberRole }))}
-                    className={clsx(FIELD, "w-full cursor-pointer")}>
+                  <input placeholder="Full name" value={invite.name} onChange={e => setInvite(p => ({ ...p, name: e.target.value }))} className={clsx(FIELD, "w-full")} />
+                  <input placeholder="Email address" type="email" value={invite.email} onChange={e => setInvite(p => ({ ...p, email: e.target.value }))} className={clsx(FIELD, "w-full")} />
+                  <select value={invite.role} onChange={e => setInvite(p => ({ ...p, role: e.target.value as MemberRole }))} className={clsx(FIELD, "w-full cursor-pointer")}>
                     {["Admin","Editor","Viewer"].map(r => <option key={r}>{r}</option>)}
                   </select>
                 </div>
@@ -440,7 +577,6 @@ export default function SettingsTab() {
                 </div>
               </div>
             )}
-
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {team.map(m => (
                 <div key={m.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
@@ -469,7 +605,7 @@ export default function SettingsTab() {
           </div>
         )}
 
-        {/* INTEGRATIONS */}
+        {/* ── INTEGRATIONS ── */}
         {section === "integrations" && (
           <div className={clsx(CARD, "p-5")}>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Integrations</h3>
@@ -498,6 +634,7 @@ export default function SettingsTab() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
