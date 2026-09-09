@@ -54,7 +54,7 @@ export default function DashboardPage() {
           onTabChange={setActiveTab}
           onMobileMenuOpen={() => setMobileNavOpen(true)}
         />
-        <div className="flex-1 overflow-y-auto bg-gray-950 p-3 sm:p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 p-3 sm:p-4 md:p-6">
           {activeTab === "overview"  && <OverviewTab />}
           {activeTab === "revenue"   && <RevenueTab />}
           {activeTab === "users"     && <UsersTab />}

@@ -16,40 +16,45 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #4B5563;
-}
+/* ── Scrollbar — dark ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4B5563; }
 
-/* Recharts tooltip */
+/* ── Scrollbar — light ── */
+.light ::-webkit-scrollbar-thumb { background: #d1d5db; }
+.light ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ── Recharts tooltip ── */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
   background: #1f2937 !important;
   border: 1px solid #374151 !important;
   border-radius: 8px !important;
 }
+.light .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+}
 
-/* Mobile sidebar slide-in animation */
+/* ── Mobile sidebar slide-in ── */
 @keyframes slideInLeft {
   from { transform: translateX(-100%); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
 }
 
-/* Hide scrollbar while keeping scroll functionality */
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* ── Hide scrollbar, keep scroll ── */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Smooth theme transitions ── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
 }
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+/* Don't transition transforms/opacity (breaks animations) */
+.animate-spin, .animate-pulse, .animate-fade-in,
+.animate-slide-up, [style*="animation"] {
+  transition: none !important;
 }
