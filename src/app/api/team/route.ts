@@ -1,39 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store, nextId } from "@/lib/store";
-import type { MemberRole } from "@/lib/store";
+import { sql } from "@/lib/db";
 
-// GET team
 export async function GET() {
-  return NextResponse.json({ team: store.team });
+  try {
+    const rows = await sql`SELECT id, name, email, role, avatar, online FROM team_members ORDER BY id`;
+    return NextResponse.json({ team: rows });
+  } catch (err) {
+    console.error("[team GET]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// POST — invite member   body: { name, email, role }
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const initials = body.name
-    .split(" ")
-    .map((w: string) => w[0]?.toUpperCase() ?? "")
-    .slice(0, 2)
-    .join("");
-  const member = { id: nextId(), name: body.name, email: body.email, role: (body.role ?? "Viewer") as MemberRole, avatar: initials, online: false };
-  store.team.push(member);
-  return NextResponse.json(member, { status: 201 });
+  try {
+    const { name, email, role } = await req.json();
+    if (!name || !email) return NextResponse.json({ error: "name and email required" }, { status: 400 });
+
+    const avatar = name.split(" ").map((w: string) => w[0]?.toUpperCase() ?? "").slice(0, 2).join("");
+    const rows = await sql`
+      INSERT INTO team_members (name, email, role, avatar, online)
+      VALUES (${name}, ${email}, ${role ?? "Viewer"}, ${avatar}, FALSE)
+      RETURNING id, name, email, role, avatar, online
+    `;
+    return NextResponse.json(rows[0], { status: 201 });
+  } catch (err) {
+    console.error("[team POST]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// PUT — change role   body: { id, role }
 export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const member = store.team.find(m => m.id === body.id);
-  if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  member.role = body.role as MemberRole;
-  return NextResponse.json(member);
+  try {
+    const { id, role } = await req.json();
+    const rows = await sql`
+      UPDATE team_members SET role = ${role} WHERE id = ${id}
+      RETURNING id, name, email, role, avatar, online
+    `;
+    if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rows[0]);
+  } catch (err) {
+    console.error("[team PUT]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// DELETE — body: { id }
 export async function DELETE(req: NextRequest) {
-  const body = await req.json();
-  const idx = store.team.findIndex(m => m.id === body.id);
-  if (idx === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  store.team.splice(idx, 1);
-  return NextResponse.json({ ok: true });
+  try {
+    const { id } = await req.json();
+    await sql`DELETE FROM team_members WHERE id = ${id}`;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[team DELETE]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

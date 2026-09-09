@@ -1,15 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
 
-export async function GET(req: NextRequest) {
-  const session = req.cookies.get("orbit_session")?.value;
-  if (!session) {
-    return NextResponse.json({ user: null }, { status: 401 });
-  }
-  try {
-    // atob works in Node 18+ and Edge Runtime
-    const user = JSON.parse(atob(session));
-    return NextResponse.json({ user });
-  } catch {
-    return NextResponse.json({ user: null }, { status: 401 });
-  }
+export async function GET() {
+  const user = await getSession();
+  if (!user) return NextResponse.json({ user: null }, { status: 401 });
+  return NextResponse.json({ user });
 }

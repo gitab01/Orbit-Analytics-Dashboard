@@ -1,42 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store, nextId } from "@/lib/store";
-import type { ReportStatus } from "@/lib/store";
+import { sql } from "@/lib/db";
 
-// GET all scheduled reports
 export async function GET() {
-  return NextResponse.json({ reports: store.scheduledReports });
+  try {
+    const rows = await sql`
+      SELECT id, name, freq, last_sent AS "last", status, type
+      FROM scheduled_reports ORDER BY id
+    `;
+    return NextResponse.json({ reports: rows });
+  } catch (err) {
+    console.error("[reports GET]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// POST — create scheduled report   body: { name, freq, type }
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const report = {
-    id: nextId(),
-    name: body.name,
-    freq: body.freq,
-    type: body.type ?? "kpi",
-    last: "Never",
-    status: "active" as ReportStatus,
-  };
-  store.scheduledReports.push(report);
-  return NextResponse.json(report, { status: 201 });
+  try {
+    const { name, freq, type } = await req.json();
+    if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
+
+    const rows = await sql`
+      INSERT INTO scheduled_reports (name, freq, type, last_sent, status)
+      VALUES (${name}, ${freq ?? "Every Monday"}, ${type ?? "kpi"}, 'Never', 'active')
+      RETURNING id, name, freq, last_sent AS "last", status, type
+    `;
+    return NextResponse.json(rows[0], { status: 201 });
+  } catch (err) {
+    console.error("[reports POST]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// PATCH — toggle status   body: { id, status }
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
-  const report = store.scheduledReports.find(r => r.id === body.id);
-  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (body.status) report.status = body.status as ReportStatus;
-  if (body.name) report.name = body.name;
-  return NextResponse.json(report);
+  try {
+    const { id, status, name } = await req.json();
+    const rows = await sql`
+      UPDATE scheduled_reports
+      SET
+        status = COALESCE(${status ?? null}, status),
+        name   = COALESCE(${name   ?? null}, name)
+      WHERE id = ${id}
+      RETURNING id, name, freq, last_sent AS "last", status, type
+    `;
+    if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rows[0]);
+  } catch (err) {
+    console.error("[reports PATCH]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// DELETE — body: { id }
 export async function DELETE(req: NextRequest) {
-  const body = await req.json();
-  const idx = store.scheduledReports.findIndex(r => r.id === body.id);
-  if (idx === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  store.scheduledReports.splice(idx, 1);
-  return NextResponse.json({ ok: true });
+  try {
+    const { id } = await req.json();
+    await sql`DELETE FROM scheduled_reports WHERE id = ${id}`;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[reports DELETE]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

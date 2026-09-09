@@ -194,13 +194,93 @@ export default function SettingsTab() {
           <div className={clsx(CARD, "p-6 space-y-5")}>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Display &amp; Preferences</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Currency */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Currency</label>
+                <select value={profile.currency} onChange={e => setProfile(p => p ? { ...p, currency: e.target.value } : p)}
+                  className={clsx(FIELD, "w-full cursor-pointer")}>
+                  {["ETB","USD","EUR","GBP","KES","JPY","CNY","INR","AUD","CAD","CHF","BRL","MXN","NGN","ZAR","EGP","SAR","AED","TRY","SGD"].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+
+              {/* Language — grouped optgroup */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Language</label>
+                <select value={profile.language} onChange={e => setProfile(p => p ? { ...p, language: e.target.value } : p)}
+                  className={clsx(FIELD, "w-full cursor-pointer")}>
+                  <optgroup label="── Ethiopian Languages ──">
+                    <option>Amharic (አማርኛ)</option>
+                    <option>Tigrigna (ትግርኛ)</option>
+                    <option>Oromiffa (Afaan Oromoo)</option>
+                    <option>Somali (Soomaali)</option>
+                    <option>Sidamegna (Sidaamu Afoo)</option>
+                    <option>Afar (Qafaraf)</option>
+                    <option>Hadiyya</option>
+                    <option>Wolaytta</option>
+                    <option>Gurage</option>
+                  </optgroup>
+                  <optgroup label="── European Languages ──">
+                    <option>English (US)</option>
+                    <option>English (UK)</option>
+                    <option>French (Français)</option>
+                    <option>Spanish (Español)</option>
+                    <option>Portuguese (Português)</option>
+                    <option>German (Deutsch)</option>
+                    <option>Italian (Italiano)</option>
+                    <option>Russian (Русский)</option>
+                    <option>Dutch (Nederlands)</option>
+                    <option>Polish (Polski)</option>
+                    <option>Swedish (Svenska)</option>
+                    <option>Norwegian (Norsk)</option>
+                    <option>Danish (Dansk)</option>
+                    <option>Finnish (Suomi)</option>
+                    <option>Greek (Ελληνικά)</option>
+                    <option>Ukrainian (Українська)</option>
+                    <option>Romanian (Română)</option>
+                    <option>Hungarian (Magyar)</option>
+                    <option>Czech (Čeština)</option>
+                    <option>Slovak (Slovenčina)</option>
+                    <option>Bulgarian (Български)</option>
+                    <option>Croatian (Hrvatski)</option>
+                    <option>Serbian (Српски)</option>
+                  </optgroup>
+                  <optgroup label="── Middle East & Central Asia ──">
+                    <option>Arabic (العربية)</option>
+                    <option>Hebrew (עברית)</option>
+                    <option>Persian (فارسی)</option>
+                    <option>Turkish (Türkçe)</option>
+                    <option>Urdu (اردو)</option>
+                  </optgroup>
+                  <optgroup label="── Asia Pacific ──">
+                    <option>Chinese Simplified (中文简体)</option>
+                    <option>Chinese Traditional (中文繁體)</option>
+                    <option>Japanese (日本語)</option>
+                    <option>Korean (한국어)</option>
+                    <option>Hindi (हिन्दी)</option>
+                    <option>Bengali (বাংলা)</option>
+                    <option>Indonesian (Bahasa Indonesia)</option>
+                    <option>Malay (Bahasa Melayu)</option>
+                    <option>Thai (ภาษาไทย)</option>
+                    <option>Vietnamese (Tiếng Việt)</option>
+                  </optgroup>
+                  <optgroup label="── Africa ──">
+                    <option>Swahili (Kiswahili)</option>
+                    <option>Hausa</option>
+                    <option>Yoruba</option>
+                    <option>Igbo</option>
+                    <option>Zulu (isiZulu)</option>
+                    <option>Afrikaans</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Remaining preferences */}
               {([
-                { key:"currency",    label:"Currency",     opts:["ETB","USD","EUR","GBP","KES"] },
-                { key:"language",    label:"Language",     opts:["English (US)","Amharic","French","Spanish"] },
                 { key:"dateFormat",  label:"Date Format",  opts:["MMM DD, YYYY","DD/MM/YYYY","YYYY-MM-DD"] },
                 { key:"fiscalYear",  label:"Fiscal Year",  opts:["January","July","April","October"] },
                 { key:"defaultView", label:"Default View", opts:["Overview","Revenue","Users","Analytics"] },
-                { key:"refreshRate", label:"Refresh Rate", opts:["30","60","120","300"] },
+                { key:"refreshRate", label:"Refresh Rate (seconds)", opts:["30","60","120","300"] },
               ] as { key: keyof Profile; label: string; opts: string[] }[]).map(({ key, label, opts }) => (
                 <div key={key}>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{label}</label>

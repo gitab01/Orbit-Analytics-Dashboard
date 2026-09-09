@@ -1,42 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const USERS = [
-  { id: "u1", name: "Alex Kim",     email: "alex@orbit.io",  password: "demo1234", role: "Admin"  },
-  { id: "u2", name: "Sara Tadesse", email: "sara@orbit.io",  password: "demo1234", role: "Editor" },
-  { id: "u3", name: "Demo User",    email: "demo@orbit.io",  password: "demo1234", role: "Viewer" },
-];
-
-// Use btoa (Web API) — works on both Node 18+ and Edge
-function encodeSession(obj: object): string {
-  return btoa(JSON.stringify(obj));
-}
+import bcrypt from "bcryptjs";
+import { sql } from "@/lib/db";
+import { createToken, COOKIE, MAX_AGE } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json();
+  try {
+    const { email, password } = await req.json();
 
-  if (!email || !password) {
-    return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+    }
+
+    // Look up user in DB
+    const rows = await sql`
+      SELECT id, name, email, role, password_hash
+      FROM users
+      WHERE email = ${email.toLowerCase().trim()}
+      LIMIT 1
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    }
+
+    const user = rows[0];
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    }
+
+    const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role };
+    const token = await createToken(safeUser);
+
+    const res = NextResponse.json({ ok: true, user: safeUser });
+    res.cookies.set(COOKIE, token, {
+      httpOnly: true,
+      path: "/",
+      maxAge: MAX_AGE,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return res;
+  } catch (err) {
+    console.error("[login]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  const user = USERS.find(
-    (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-  );
-
-  if (!user) {
-    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
-  }
-
-  const { password: _, ...safeUser } = user;
-  const session = encodeSession(safeUser);
-
-  const res = NextResponse.json({ ok: true, user: safeUser });
-  res.cookies.set("orbit_session", session, {
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    sameSite: "lax",
-    // secure: true  ← uncomment when on HTTPS (Vercel sets this automatically)
-  });
-
-  return res;
 }

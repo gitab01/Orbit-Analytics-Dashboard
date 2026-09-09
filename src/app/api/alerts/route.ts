@@ -1,47 +1,90 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store, nextId } from "@/lib/store";
-import type { AlertStatus, AlertSeverity } from "@/lib/store";
+import { sql } from "@/lib/db";
 
-// GET all alerts + rules
+// GET — all alerts + rules
 export async function GET() {
-  return NextResponse.json({ alerts: store.alerts, rules: store.alertRules });
+  try {
+    const [alerts, rules] = await Promise.all([
+      sql`
+        SELECT id, title, description, severity, status, metric, value, threshold,
+          CASE
+            WHEN created_at > NOW() - INTERVAL '1 hour'   THEN EXTRACT(MINUTE FROM NOW() - created_at)::int || ' min ago'
+            WHEN created_at > NOW() - INTERVAL '24 hours' THEN EXTRACT(HOUR   FROM NOW() - created_at)::int || ' hr ago'
+            ELSE EXTRACT(DAY FROM NOW() - created_at)::int || ' days ago'
+          END AS time
+        FROM alerts ORDER BY created_at DESC
+      `,
+      sql`SELECT id, name, trigger, channel, enabled FROM alert_rules ORDER BY id`,
+    ]);
+    return NextResponse.json({ alerts, rules });
+  } catch (err) {
+    console.error("[alerts GET]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// POST — create new alert rule   body: { name, trigger, channel }
+// POST — create alert rule
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const rule = { id: nextId(), name: body.name, trigger: body.trigger, channel: body.channel, enabled: true };
-  store.alertRules.push(rule);
-  return NextResponse.json(rule, { status: 201 });
+  try {
+    const { name, trigger, channel } = await req.json();
+    if (!name || !trigger) return NextResponse.json({ error: "name and trigger required" }, { status: 400 });
+
+    const rows = await sql`
+      INSERT INTO alert_rules (name, trigger, channel, enabled)
+      VALUES (${name}, ${trigger}, ${channel ?? "Email"}, TRUE)
+      RETURNING id, name, trigger, channel, enabled
+    `;
+    return NextResponse.json(rows[0], { status: 201 });
+  } catch (err) {
+    console.error("[alerts POST]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// PATCH — update alert or rule   body: { id, type:"alert"|"rule", ...fields }
+// PATCH — update alert status or rule fields
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
-  if (body.type === "alert") {
-    const alert = store.alerts.find(a => a.id === body.id);
-    if (!alert) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (body.status) alert.status = body.status as AlertStatus;
-    if (body.severity) alert.severity = body.severity as AlertSeverity;
-    return NextResponse.json(alert);
+  try {
+    const body = await req.json();
+
+    if (body.type === "alert") {
+      const rows = await sql`
+        UPDATE alerts SET status = ${body.status} WHERE id = ${body.id}
+        RETURNING id, title, description, severity, status, metric, value, threshold
+      `;
+      if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json(rows[0]);
+    }
+
+    if (body.type === "rule") {
+      const rows = await sql`
+        UPDATE alert_rules
+        SET
+          enabled = COALESCE(${body.enabled ?? null}::boolean, enabled),
+          name    = COALESCE(${body.name    ?? null}, name),
+          trigger = COALESCE(${body.trigger ?? null}, trigger),
+          channel = COALESCE(${body.channel ?? null}, channel)
+        WHERE id = ${body.id}
+        RETURNING id, name, trigger, channel, enabled
+      `;
+      if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json(rows[0]);
+    }
+
+    return NextResponse.json({ error: "type must be alert or rule" }, { status: 400 });
+  } catch (err) {
+    console.error("[alerts PATCH]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-  if (body.type === "rule") {
-    const rule = store.alertRules.find(r => r.id === body.id);
-    if (!rule) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (typeof body.enabled === "boolean") rule.enabled = body.enabled;
-    if (body.name) rule.name = body.name;
-    if (body.trigger) rule.trigger = body.trigger;
-    if (body.channel) rule.channel = body.channel;
-    return NextResponse.json(rule);
-  }
-  return NextResponse.json({ error: "type must be alert or rule" }, { status: 400 });
 }
 
-// DELETE — remove rule   body: { id }
+// DELETE — remove alert rule
 export async function DELETE(req: NextRequest) {
-  const body = await req.json();
-  const idx = store.alertRules.findIndex(r => r.id === body.id);
-  if (idx === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  store.alertRules.splice(idx, 1);
-  return NextResponse.json({ ok: true });
+  try {
+    const { id } = await req.json();
+    await sql`DELETE FROM alert_rules WHERE id = ${id}`;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[alerts DELETE]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

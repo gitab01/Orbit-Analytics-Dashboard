@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import { sql } from "@/lib/db";
 
-// GET all integrations
 export async function GET() {
-  return NextResponse.json({ integrations: store.integrations });
+  try {
+    const rows = await sql`SELECT id, name, desc, logo, connected, category FROM integrations ORDER BY id`;
+    return NextResponse.json({ integrations: rows });
+  } catch (err) {
+    console.error("[integrations GET]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
-// PATCH — toggle connection   body: { id }
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
-  const intg = store.integrations.find(i => i.id === body.id);
-  if (!intg) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  intg.connected = !intg.connected;
-  return NextResponse.json(intg);
+  try {
+    const { id } = await req.json();
+    const rows = await sql`
+      UPDATE integrations SET connected = NOT connected
+      WHERE id = ${id}
+      RETURNING id, name, desc, logo, connected, category
+    `;
+    if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rows[0]);
+  } catch (err) {
+    console.error("[integrations PATCH]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

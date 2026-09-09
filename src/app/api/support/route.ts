@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 
-// POST — contact support message   body: { message, email? }
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  if (!body.message?.trim()) {
-    return NextResponse.json({ error: "Message is required" }, { status: 400 });
+  try {
+    const body = await req.json();
+    if (!body.message?.trim()) {
+      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
+
+    const session = await getSession();
+    const ticketId = `TKT-${Date.now().toString(36).toUpperCase()}`;
+
+    await sql`
+      INSERT INTO support_tickets (ticket_id, message, email)
+      VALUES (${ticketId}, ${body.message.trim()}, ${session?.email ?? body.email ?? null})
+    `;
+
+    return NextResponse.json({ ok: true, ticketId }, { status: 201 });
+  } catch (err) {
+    console.error("[support POST]", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-  // In production this would send an email / create a ticket.
-  // For now we log and return a ticket ID.
-  const ticketId = `TKT-${Date.now().toString(36).toUpperCase()}`;
-  console.log(`[Support] New ticket ${ticketId}: ${body.message}`);
-  return NextResponse.json({ ok: true, ticketId }, { status: 201 });
 }
