@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // In-memory user registry (resets on cold start — swap for a DB in production)
-export const registeredUsers: {
+const registeredUsers: {
   id: string; name: string; email: string; password: string; role: string;
 }[] = [
   { id: "u1", name: "Alex Kim",     email: "alex@orbit.io",  password: "demo1234", role: "Admin"  },

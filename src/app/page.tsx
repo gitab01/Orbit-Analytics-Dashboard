@@ -1,5 +1,6 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import KPICard from "@/components/KPICard";
@@ -27,13 +28,24 @@ export default function DashboardPage() {
   const [activeTab,      setActiveTab]      = useState("overview");
   const [isRefreshing,   setIsRefreshing]   = useState(false);
   const [mobileNavOpen,  setMobileNavOpen]  = useState(false);
+  const [authed,         setAuthed]         = useState(false);
   const { refresh } = useDashboard();
+  const router = useRouter();
+
+  // Client-side auth guard — fallback if middleware doesn't catch it
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => { if (r.ok) setAuthed(true); else window.location.href = "/login"; })
+      .catch(() => { window.location.href = "/login"; });
+  }, []);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     refresh();
     setTimeout(() => setIsRefreshing(false), 1200);
   }, [refresh]);
+
+  if (!authed) return null; // render nothing until auth confirmed
 
   const activeAlertCount = 3; // displayed as badge; Sidebar fetches live count internally
 
