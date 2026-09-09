@@ -1,15 +1,15 @@
 /**
  * Mailer — sends the password-reset code email.
  *
- * Priority:
- *  1. Resend  — if RESEND_API_KEY is set
- *  2. Nodemailer via Gmail SMTP — if GMAIL_USER + GMAIL_APP_PASSWORD are set
- *  3. Console fallback (dev only)
+ * Uses Resend (HTTP-based, works on Vercel serverless).
+ * Nodemailer/SMTP does NOT work on Vercel — TCP connections are blocked.
  *
- * To use Gmail SMTP:
- *  - Enable 2-Step Verification on your Google account
- *  - Generate an App Password at https://myaccount.google.com/apppasswords
- *  - Add GMAIL_USER and GMAIL_APP_PASSWORD to .env.local
+ * Setup:
+ *  1. Sign up free at https://resend.com (100 emails/day free)
+ *  2. Create an API key
+ *  3. Add to Vercel env vars: RESEND_API_KEY
+ *  4. For the sender address, use the Resend onboarding address for testing,
+ *     or add + verify your own domain at resend.com/domains
  */
 
 function buildEmailHtml(code: string): string {
@@ -86,51 +86,36 @@ function buildEmailHtml(code: string): string {
 }
 
 /**
- * Sends the reset code email.
- * Returns true if sent, false if no provider is configured (dev fallback).
+ * Sends the reset code email via Resend (Vercel-compatible).
+ * Returns true if sent, false if RESEND_API_KEY is not configured.
  */
 export async function sendResetEmail(to: string, code: string): Promise<boolean> {
   const html    = buildEmailHtml(code);
   const subject = "Your Orbit password reset code";
   const text    = `Your Orbit password reset code is: ${code}\n\nThis code expires in 15 minutes.`;
 
-  // ── 1. Try Resend ────────────────────────────────────────────
+  // ── Resend (HTTP — works on Vercel serverless) ───────────────
   if (process.env.RESEND_API_KEY) {
     try {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const from   = process.env.RESEND_FROM_EMAIL ?? "Orbit Analytics <noreply@orbit-analytics.app>";
-      await resend.emails.send({ from, to, subject, html, text });
+
+      // Use verified sender domain, or Resend's onboarding address for testing
+      const from = process.env.RESEND_FROM_EMAIL ?? "Orbit Analytics <onboarding@resend.dev>";
+
+      const result = await resend.emails.send({ from, to, subject, html, text });
+
+      if (result.error) {
+        console.error("[mailer] Resend error:", result.error);
+        return false;
+      }
       return true;
     } catch (err) {
       console.error("[mailer] Resend failed:", err);
+      return false;
     }
   }
 
-  // ── 2. Try Gmail SMTP via Nodemailer ─────────────────────────
-  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-    try {
-      const nodemailer = await import("nodemailer");
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-      });
-      await transporter.sendMail({
-        from:    `"Orbit Analytics" <${process.env.GMAIL_USER}>`,
-        to,
-        subject,
-        text,
-        html,
-      });
-      return true;
-    } catch (err) {
-      console.error("[mailer] Nodemailer/Gmail failed:", err);
-    }
-  }
-
-  // ── 3. No provider — caller handles console fallback ─────────
+  // ── No provider configured — console fallback (local dev only) ─
   return false;
 }
