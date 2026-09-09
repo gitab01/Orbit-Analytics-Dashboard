@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { isValidEmail } from "@/lib/validate";
 
 export async function GET() {
   try {
@@ -56,6 +57,11 @@ export async function PUT(req: NextRequest) {
         WHERE user_id = ${userId}
       `;
       return NextResponse.json({ notifications: body.data });
+    }
+
+    // Validate email if provided
+    if (body.email && !isValidEmail(body.email)) {
+      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
     }
 
     // Update profile fields

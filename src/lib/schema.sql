@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   timezone      TEXT NOT NULL DEFAULT 'UTC',
   bio           TEXT NOT NULL DEFAULT '',
   currency      TEXT NOT NULL DEFAULT 'USD',
-  language      TEXT NOT NULL DEFAULT 'English (US)',
+  language      TEXT NOT NULL DEFAULT 'en-US',
   date_format   TEXT NOT NULL DEFAULT 'MMM DD, YYYY',
   fiscal_year   TEXT NOT NULL DEFAULT 'January',
   default_view  TEXT NOT NULL DEFAULT 'Overview',

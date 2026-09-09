@@ -2,20 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { createToken, COOKIE, MAX_AGE } from "@/lib/auth";
+import { isValidEmail, isValidName, isValidPassword } from "@/lib/validate";
 
 export async function POST(req: NextRequest) {
   try {
     const { name, email, password } = await req.json();
 
-    if (!name?.trim() || !email?.trim() || !password) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    const nameErr = isValidName(name ?? "");
+    if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
+
+    if (!email?.trim()) {
+      return NextResponse.json({ error: "Email address is required" }, { status: 400 });
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ error: "Please enter a valid email address (e.g. name@company.com)" }, { status: 400 });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
-    }
+
+    const pwErr = isValidPassword(password ?? "");
+    if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
 
     const cleanEmail = email.toLowerCase().trim();
 
