@@ -35,8 +35,8 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      router.push("/");
-      router.refresh();
+      // Hard navigate so middleware re-evaluates the new session cookie
+      window.location.href = "/";
     } catch {
       setError("Network error — please try again");
     } finally {

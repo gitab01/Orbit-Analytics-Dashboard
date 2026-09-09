@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, BarChart3, Users, TrendingUp, Settings,
   Bell, HelpCircle, ChevronLeft, ChevronRight, Orbit,
@@ -31,7 +30,6 @@ interface Props {
 }
 
 export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobileOpen = false, onMobileClose }: Props) {
-  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [profile, setProfile] = useState<{ firstName: string; lastName: string; email: string } | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -45,8 +43,8 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
   const handleLogout = async () => {
     setLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    // Hard navigate so middleware clears the session and forces /login
+    window.location.href = "/login";
   };
 
   const initials = profile ? `${profile.firstName[0]}${profile.lastName[0]}` : "AK";
