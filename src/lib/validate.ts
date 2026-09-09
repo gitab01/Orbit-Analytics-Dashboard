@@ -1,33 +1,30 @@
 // ── Shared validation helpers ─────────────────────────────────
 
 /**
- * Valid email domains — accepts major public providers + any business domain.
- * Rejects obviously fake TLDs but allows all real ones.
+ * Gmail-only email regex — enforces the format: anything@gmail.com
+ * Local part: letters, numbers, dots (no leading/trailing/consecutive dots)
  */
 export const EMAIL_RE =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  /^[a-zA-Z0-9](?:[a-zA-Z0-9.]{0,28}[a-zA-Z0-9])?@gmail\.com$/;
 
-// Well-known personal email domains for friendly hint messages
-export const COMMON_DOMAINS = [
-  "gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com",
-  "live.com","proton.me","protonmail.com","aol.com","zoho.com",
-  "yandex.com","mail.com","gmx.com","tutanota.com",
-];
+// Kept for reference — only gmail is accepted
+export const COMMON_DOMAINS = ["gmail.com"];
 
 export function isValidEmail(email: string): boolean {
-  return EMAIL_RE.test(email.trim());
+  return EMAIL_RE.test(email.trim().toLowerCase());
 }
 
 /** Returns an error string if invalid, null if valid */
 export function validateEmailField(email: string): string | null {
   const e = email.trim();
   if (!e) return "Email address is required";
-  if (!EMAIL_RE.test(e)) {
-    // Give a helpful hint for the most common mistake
-    if (!e.includes("@")) return "Please include an '@' in the email address";
-    if (!e.includes(".")) return "Please enter a complete email (e.g. name@gmail.com)";
-    return "Please enter a valid email address (e.g. name@gmail.com)";
-  }
+  if (!e.includes("@")) return "Please include '@' in the email address";
+  const [, domain] = e.split("@");
+  if (!domain) return "Email must be in the format name@gmail.com";
+  if (domain.toLowerCase() !== "gmail.com")
+    return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
+  if (!EMAIL_RE.test(e.toLowerCase()))
+    return "Please enter a valid Gmail address (e.g. name@gmail.com)";
   return null;
 }
 

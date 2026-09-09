@@ -42,7 +42,11 @@ export default function SignupPage() {
     },
     email: (v) => {
       if (!v.trim()) return "Email address is required";
-      if (!isValidEmail(v)) return "Enter a valid email address (e.g. name@company.com)";
+      if (!v.includes("@")) return "Please include '@' in the email address";
+      const [, domain] = v.trim().split("@");
+      if (domain?.toLowerCase() !== "gmail.com")
+        return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
+      if (!isValidEmail(v)) return "Please enter a valid Gmail address (e.g. name@gmail.com)";
       return "";
     },
     password: (v) => {
@@ -189,7 +193,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={e => { setEmail(e.target.value); if (touched.email) validate("email", e.target.value); }}
                 onBlur={() => { touch("email"); validate("email", email); }}
-                placeholder="name@company.com"
+                placeholder="name@gmail.com"
                 autoComplete="email"
                 autoCapitalize="off"
                 spellCheck={false}
