@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql, hasDB } from "@/lib/db";
 import { createToken, COOKIE, MAX_AGE } from "@/lib/auth";
-import { isValidEmail } from "@/lib/validate";
+import { isValidGmailEmail } from "@/lib/validate";
 import { store, nextId } from "@/lib/store";
 import { verifyEmailCode } from "@/lib/emailVerification";
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     if (!email?.trim() || !code?.trim())
       return NextResponse.json({ error: "Email and code are required" }, { status: 400 });
-    if (!isValidEmail(email))
+    if (!isValidGmailEmail(email))
       return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
     if (!/^\d{6}$/.test(code.trim()))
       return NextResponse.json({ error: "Code must be 6 digits" }, { status: 400 });

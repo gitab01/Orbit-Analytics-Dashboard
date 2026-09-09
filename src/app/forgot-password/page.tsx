@@ -1,32 +1,16 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Orbit, ArrowRight, ArrowLeft, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Mail, KeyRound, Lock } from "lucide-react";
+import {
+  Orbit, ArrowRight, ArrowLeft, Loader2, AlertCircle,
+  CheckCircle, Eye, EyeOff, Mail, KeyRound, Lock,
+} from "lucide-react";
 import clsx from "clsx";
 import ThemeToggle from "@/components/ThemeToggle";
 import { validateEmailField, isValidPassword } from "@/lib/validate";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 type Step = "email" | "code" | "newPassword" | "done";
-
-// ── Password rule checker ─────────────────────────────────────
-const PW_RULES = [
-  { id:"len",   label:"At least 8 characters",      test: (p: string) => p.length >= 8          },
-  { id:"upper", label:"One uppercase letter (A–Z)",  test: (p: string) => /[A-Z]/.test(p)        },
-  { id:"num",   label:"One number (0–9)",            test: (p: string) => /[0-9]/.test(p)        },
-];
-
-function strength(pw: string): "none"|"weak"|"medium"|"strong" {
-  if (!pw) return "none";
-  const n = PW_RULES.filter(r => r.test(pw)).length;
-  return n === 3 ? "strong" : n === 2 ? "medium" : "weak";
-}
-
-const strCfg = {
-  none:   { w:"w-0",    c:"bg-gray-300 dark:bg-gray-700", label:"",       t:"" },
-  weak:   { w:"w-1/3",  c:"bg-red-500",                   label:"Weak",   t:"text-red-500 dark:text-red-400" },
-  medium: { w:"w-2/3",  c:"bg-amber-500",                 label:"Medium", t:"text-amber-500 dark:text-amber-400" },
-  strong: { w:"w-full", c:"bg-brand-500",                 label:"Strong", t:"text-brand-600 dark:text-brand-400" },
-};
 
 const inputBase = "w-full px-4 py-3 text-sm rounded-xl border transition-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1";
 const inputOk   = "border-gray-200 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/30";
@@ -34,24 +18,44 @@ const inputErr  = "border-red-400 dark:border-red-500/60 focus:border-red-500 fo
 const inputGood = "border-brand-400 dark:border-brand-500/60 focus:border-brand-500 focus:ring-brand-500/20";
 
 export default function ForgotPasswordPage() {
-  const [step,      setStep]      = useState<Step>("email");
-  const [email,     setEmail]     = useState("");
-  const [code,      setCode]      = useState("");
-  const [newPw,     setNewPw]     = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [showPw,    setShowPw]    = useState(false);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState("");
-  const [emailErr,  setEmailErr]  = useState("");
-  const [codeErr,   setCodeErr]   = useState("");
-  const [pwErr,     setPwErr]     = useState("");
-  const [confirmErr,setConfirmErr]= useState("");
-  const [resending, setResending] = useState(false);
-  const [resendMsg, setResendMsg] = useState("");
+  const { t } = useLanguage();
 
-  const sw = strCfg[strength(newPw)];
+  const [step,       setStep]       = useState<Step>("email");
+  const [email,      setEmail]      = useState("");
+  const [code,       setCode]       = useState("");
+  const [newPw,      setNewPw]      = useState("");
+  const [confirmPw,  setConfirmPw]  = useState("");
+  const [showPw,     setShowPw]     = useState(false);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
+  const [emailErr,   setEmailErr]   = useState("");
+  const [codeErr,    setCodeErr]    = useState("");
+  const [pwErr,      setPwErr]      = useState("");
+  const [confirmErr, setConfirmErr] = useState("");
+  const [resending,  setResending]  = useState(false);
+  const [resendMsg,  setResendMsg]  = useState("");
 
-  // ── Step 1: send code ─────────────────────────────────────
+  // ── Password strength ─────────────────────────────────────────
+  const PW_RULES = [
+    { id:"len",   label: t("signup.rule8chars"),   test: (p: string) => p.length >= 8   },
+    { id:"upper", label: t("signup.ruleUppercase"), test: (p: string) => /[A-Z]/.test(p) },
+    { id:"num",   label: t("signup.ruleNumber"),   test: (p: string) => /[0-9]/.test(p) },
+  ];
+
+  function pwStrength(pw: string): "none"|"weak"|"medium"|"strong" {
+    if (!pw) return "none";
+    const n = PW_RULES.filter(r => r.test(pw)).length;
+    return n === 3 ? "strong" : n === 2 ? "medium" : "weak";
+  }
+
+  const sw = {
+    none:   { w:"w-0",    c:"bg-gray-300 dark:bg-gray-700", label:"",                 t2:"" },
+    weak:   { w:"w-1/3",  c:"bg-red-500",                   label:t("signup.weak"),   t2:"text-red-500 dark:text-red-400" },
+    medium: { w:"w-2/3",  c:"bg-amber-500",                 label:t("signup.medium"), t2:"text-amber-500 dark:text-amber-400" },
+    strong: { w:"w-full", c:"bg-brand-500",                 label:t("signup.strong"), t2:"text-brand-600 dark:text-brand-400" },
+  }[pwStrength(newPw)];
+
+  // ── Step 1: send code ─────────────────────────────────────────
   const handleSendCode = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const err = validateEmailField(email);
@@ -63,13 +67,13 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to send code"); return; }
+      if (!res.ok) { setError(data.error ?? t("forgot.failedSend")); return; }
       setStep("code");
-    } catch { setError("Network error — please try again"); }
+    } catch { setError(t("forgot.networkError")); }
     finally { setLoading(false); }
   };
 
-  // ── Resend code ───────────────────────────────────────────
+  // ── Resend code ───────────────────────────────────────────────
   const handleResend = async () => {
     setResending(true); setResendMsg(""); setCodeErr(""); setError("");
     try {
@@ -78,15 +82,15 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       setCode("");
-      setResendMsg("A new code has been sent.");
-    } catch { setResendMsg("Failed to resend. Try again."); }
+      setResendMsg(t("forgot.resendSuccess"));
+    } catch { setResendMsg(t("forgot.resendFailed")); }
     finally { setResending(false); }
   };
 
-  // ── Step 2: verify code ───────────────────────────────────
+  // ── Step 2: verify code ───────────────────────────────────────
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{6}$/.test(code.trim())) { setCodeErr("Please enter the 6-digit code from your email"); return; }
+    if (!/^\d{6}$/.test(code.trim())) { setCodeErr(t("signup.invalidCode")); return; }
     setCodeErr(""); setError(""); setLoading(true);
     try {
       const res  = await fetch("/api/auth/verify-reset-code", {
@@ -94,18 +98,18 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) { setCodeErr(data.error ?? "Invalid code"); return; }
+      if (!res.ok) { setCodeErr(data.error ?? t("signup.invalidCode")); return; }
       setStep("newPassword");
-    } catch { setError("Network error — please try again"); }
+    } catch { setError(t("forgot.networkError")); }
     finally { setLoading(false); }
   };
 
-  // ── Step 3: set new password ──────────────────────────────
+  // ── Step 3: set new password ──────────────────────────────────
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = isValidPassword(newPw);
     if (err) { setPwErr(err); return; }
-    if (newPw !== confirmPw) { setConfirmErr("Passwords do not match"); return; }
+    if (newPw !== confirmPw) { setConfirmErr(t("forgot.pwNoMatch")); return; }
     setPwErr(""); setConfirmErr(""); setError(""); setLoading(true);
     try {
       const res  = await fetch("/api/auth/reset-password", {
@@ -113,40 +117,44 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: email.trim().toLowerCase(), password: newPw }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to reset password"); return; }
+      if (!res.ok) { setError(data.error ?? t("forgot.failedReset")); return; }
       setStep("done");
-    } catch { setError("Network error — please try again"); }
+    } catch { setError(t("forgot.networkError")); }
     finally { setLoading(false); }
   };
+
+  const stepTitle = {
+    email:       t("forgot.title.email"),
+    code:        t("forgot.title.code"),
+    newPassword: t("forgot.title.newPassword"),
+    done:        t("forgot.title.done"),
+  }[step];
+
+  const stepSubtitle = {
+    email:       t("forgot.sub.email"),
+    code:        t("forgot.sub.code", { email }),
+    newPassword: t("forgot.sub.newPassword"),
+    done:        t("forgot.sub.done"),
+  }[step];
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 transition-colors">
       <div className="fixed top-4 right-4 z-10"><ThemeToggle /></div>
 
-      {/* Background glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-3xl bg-brand-500/10" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-3xl bg-blue-500/6" />
       </div>
 
       <div className="w-full max-w-sm relative">
-        {/* Logo */}
+
+        {/* Logo & heading */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-500 mb-4 shadow-lg shadow-brand-500/30">
             <Orbit size={24} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {step === "email"       ? "Forgot password?"   :
-             step === "code"        ? "Check your email"   :
-             step === "newPassword" ? "Set new password"   :
-                                      "Password updated"}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1 text-center">
-            {step === "email"       ? "Enter your email and we'll send a reset code" :
-             step === "code"        ? `We sent a 6-digit code to ${email}` :
-             step === "newPassword" ? "Choose a strong new password" :
-                                      "Your password has been reset successfully"}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{stepTitle}</h1>
+          <p className="text-sm text-gray-500 mt-1 text-center">{stepSubtitle}</p>
         </div>
 
         <div className="rounded-2xl p-6 shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
@@ -156,22 +164,15 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSendCode} noValidate className="space-y-4">
               <div>
                 <label htmlFor="fp-email" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                  Email address
+                  {t("forgot.emailLabel")}
                 </label>
                 <div className="relative">
                   <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    id="fp-email"
-                    type="email"
-                    value={email}
+                  <input id="fp-email" type="email" value={email}
                     onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(validateEmailField(e.target.value) ?? ""); }}
                     onBlur={() => setEmailErr(validateEmailField(email) ?? "")}
-                    placeholder="name@gmail.com"
-                    autoComplete="email"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    className={clsx(inputBase, "pl-10", emailErr ? inputErr : inputOk)}
-                  />
+                    placeholder="name@gmail.com" autoComplete="email" autoCapitalize="off" spellCheck={false}
+                    className={clsx(inputBase, "pl-10", emailErr ? inputErr : inputOk)} />
                 </div>
                 {emailErr && (
                   <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
@@ -191,7 +192,9 @@ export default function ForgotPasswordPage() {
                 className={clsx("w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all",
                   loading ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
                 )}>
-                {loading ? <><Loader2 size={15} className="animate-spin" /> Sending code…</> : <>Send reset code <ArrowRight size={15} /></>}
+                {loading
+                  ? <><Loader2 size={15} className="animate-spin" /> {t("forgot.sending")}</>
+                  : <>{t("forgot.sendCode")} <ArrowRight size={15} /></>}
               </button>
             </form>
           )}
@@ -201,22 +204,15 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleVerifyCode} noValidate className="space-y-4">
               <div>
                 <label htmlFor="fp-code" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                  6-digit verification code
+                  {t("forgot.codeLabel")}
                 </label>
                 <div className="relative">
                   <KeyRound size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    id="fp-code"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d{6}"
-                    maxLength={6}
+                  <input id="fp-code" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6}
                     value={code}
                     onChange={e => { const v = e.target.value.replace(/\D/g,""); setCode(v); if (codeErr) setCodeErr(""); }}
-                    placeholder="_ _ _ _ _ _"
-                    autoComplete="one-time-code"
-                    className={clsx(inputBase, "pl-10 tracking-[0.4em] text-center font-mono text-lg", codeErr ? inputErr : inputOk)}
-                  />
+                    placeholder="_ _ _ _ _ _" autoComplete="one-time-code"
+                    className={clsx(inputBase, "pl-10 tracking-[0.4em] text-center font-mono text-lg", codeErr ? inputErr : inputOk)} />
                 </div>
                 {codeErr && (
                   <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
@@ -224,10 +220,10 @@ export default function ForgotPasswordPage() {
                   </p>
                 )}
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-gray-400">Code expires in 15 minutes</p>
+                  <p className="text-xs text-gray-400">{t("forgot.codeExpiry")}</p>
                   <button type="button" disabled={resending} onClick={handleResend}
                     className="text-xs text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 transition-opacity">
-                    {resending ? "Sending…" : "Resend code"}
+                    {resending ? t("forgot.resending") : t("forgot.resendCode")}
                   </button>
                 </div>
                 {resendMsg && <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">{resendMsg}</p>}
@@ -244,12 +240,14 @@ export default function ForgotPasswordPage() {
                 className={clsx("w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all",
                   loading || code.length !== 6 ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
                 )}>
-                {loading ? <><Loader2 size={15} className="animate-spin" /> Verifying…</> : <>Verify code <ArrowRight size={15} /></>}
+                {loading
+                  ? <><Loader2 size={15} className="animate-spin" /> {t("forgot.verifying")}</>
+                  : <>{t("forgot.verifyCode")} <ArrowRight size={15} /></>}
               </button>
 
               <button type="button" onClick={() => { setStep("email"); setCode(""); setCodeErr(""); setError(""); }}
                 className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors py-1">
-                <ArrowLeft size={12} /> Use a different email
+                <ArrowLeft size={12} /> {t("forgot.useDifferentEmail")}
               </button>
             </form>
           )}
@@ -257,74 +255,68 @@ export default function ForgotPasswordPage() {
           {/* ── STEP 3: New password ── */}
           {step === "newPassword" && (
             <form onSubmit={handleResetPassword} noValidate className="space-y-4">
-              {/* New password */}
               <div>
                 <label htmlFor="fp-newpw" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                  New password
+                  {t("forgot.newPwLabel")}
                 </label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    id="fp-newpw"
-                    type={showPw ? "text" : "password"}
-                    value={newPw}
+                  <input id="fp-newpw" type={showPw ? "text" : "password"} value={newPw}
                     onChange={e => { setNewPw(e.target.value); if (pwErr) setPwErr(isValidPassword(e.target.value) ?? ""); }}
-                    placeholder="Min. 8 characters"
-                    autoComplete="new-password"
-                    className={clsx(inputBase, "pl-10 pr-11", pwErr ? inputErr : newPw && !isValidPassword(newPw) ? inputGood : inputOk)}
-                  />
+                    placeholder={t("signup.passwordMin")} autoComplete="new-password"
+                    className={clsx(inputBase, "pl-10 pr-11", pwErr ? inputErr : newPw && !isValidPassword(newPw) ? inputGood : inputOk)} />
                   <button type="button" onClick={() => setShowPw(!showPw)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                {/* Strength bar */}
                 {newPw && (
                   <div className="mt-2 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                         <div className={clsx("h-full rounded-full transition-all duration-300", sw.w, sw.c)} />
                       </div>
-                      <span className={clsx("text-xs font-medium w-12 text-right", sw.t)}>{sw.label}</span>
+                      <span className={clsx("text-xs font-medium w-12 text-right", sw.t2)}>{sw.label}</span>
                     </div>
                     <div className="space-y-0.5">
                       {PW_RULES.map(rule => {
                         const ok = rule.test(newPw);
                         return (
                           <p key={rule.id} className={clsx("flex items-center gap-1.5 text-xs", ok ? "text-brand-600 dark:text-brand-400" : "text-gray-400")}>
-                            <CheckCircle size={10} className={clsx("flex-shrink-0", ok ? "opacity-100" : "opacity-30")} />{rule.label}
+                            <CheckCircle size={10} className={clsx("flex-shrink-0", ok ? "opacity-100" : "opacity-30")} />
+                            {rule.label}
                           </p>
                         );
                       })}
                     </div>
                   </div>
                 )}
-                {pwErr && <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400"><AlertCircle size={11} className="flex-shrink-0" />{pwErr}</p>}
+                {pwErr && (
+                  <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <AlertCircle size={11} className="flex-shrink-0" />{pwErr}
+                  </p>
+                )}
               </div>
 
-              {/* Confirm password */}
               <div>
                 <label htmlFor="fp-confirmpw" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                  Confirm new password
+                  {t("forgot.confirmPwLabel")}
                 </label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    id="fp-confirmpw"
-                    type={showPw ? "text" : "password"}
-                    value={confirmPw}
-                    onChange={e => { setConfirmPw(e.target.value); if (confirmErr) setConfirmErr(e.target.value !== newPw ? "Passwords do not match" : ""); }}
-                    placeholder="Repeat your password"
-                    autoComplete="new-password"
-                    className={clsx(inputBase, "pl-10 pr-11",
-                      confirmErr ? inputErr : confirmPw && confirmPw === newPw ? inputGood : inputOk
-                    )}
-                  />
+                  <input id="fp-confirmpw" type={showPw ? "text" : "password"} value={confirmPw}
+                    onChange={e => { setConfirmPw(e.target.value); if (confirmErr) setConfirmErr(e.target.value !== newPw ? t("forgot.pwNoMatch") : ""); }}
+                    placeholder={t("signup.repeatPassword")} autoComplete="new-password"
+                    className={clsx(inputBase, "pl-10 pr-11", confirmErr ? inputErr : confirmPw && confirmPw === newPw ? inputGood : inputOk)} />
                   {confirmPw && confirmPw === newPw && (
                     <CheckCircle size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-500" />
                   )}
                 </div>
-                {confirmErr && <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400"><AlertCircle size={11} className="flex-shrink-0" />{confirmErr}</p>}
+                {confirmErr && (
+                  <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <AlertCircle size={11} className="flex-shrink-0" />{confirmErr}
+                  </p>
+                )}
               </div>
 
               {error && (
@@ -338,7 +330,9 @@ export default function ForgotPasswordPage() {
                 className={clsx("w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all",
                   loading ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
                 )}>
-                {loading ? <><Loader2 size={15} className="animate-spin" /> Updating…</> : <>Reset password <ArrowRight size={15} /></>}
+                {loading
+                  ? <><Loader2 size={15} className="animate-spin" /> {t("forgot.updating")}</>
+                  : <>{t("forgot.resetBtn")} <ArrowRight size={15} /></>}
               </button>
             </form>
           )}
@@ -349,14 +343,10 @@ export default function ForgotPasswordPage() {
               <div className="flex items-center justify-center w-16 h-16 rounded-full bg-brand-50 dark:bg-brand-500/15 mx-auto">
                 <CheckCircle size={32} className="text-brand-500" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Your password has been updated. You can now sign in with your new password.
-                </p>
-              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t("forgot.doneMsg")}</p>
               <a href="/login"
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20 transition-all">
-                Go to Sign in <ArrowRight size={15} />
+                {t("forgot.goToSignIn")} <ArrowRight size={15} />
               </a>
             </div>
           )}
@@ -364,8 +354,10 @@ export default function ForgotPasswordPage() {
 
         {step !== "done" && (
           <p className="text-center text-sm text-gray-500 mt-5">
-            Remember your password?{" "}
-            <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">Sign in</Link>
+            {t("forgot.rememberPw")}{" "}
+            <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
+              {t("forgot.signIn")}
+            </Link>
           </p>
         )}
       </div>

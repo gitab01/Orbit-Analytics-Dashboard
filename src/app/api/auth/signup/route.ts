@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sql, hasDB } from "@/lib/db";
-import { isValidEmail, isValidName, isValidPassword } from "@/lib/validate";
+import { isValidGmailEmail, isValidName, isValidPassword } from "@/lib/validate";
 import { store } from "@/lib/store";
 import { createVerificationCode, hasPendingVerification, refreshVerificationCode } from "@/lib/emailVerification";
 import { sendVerificationEmail } from "@/lib/mailer";
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const nameErr = isValidName(name ?? "");
     if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
     if (!email?.trim()) return NextResponse.json({ error: "Email address is required" }, { status: 400 });
-    if (!isValidEmail(email)) return NextResponse.json({ error: "Please enter a valid Gmail address (e.g. name@gmail.com)" }, { status: 400 });
+    if (!isValidGmailEmail(email)) return NextResponse.json({ error: "Please enter a valid Gmail address (e.g. name@gmail.com)" }, { status: 400 });
     const pwErr = isValidPassword(password ?? "");
     if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
 

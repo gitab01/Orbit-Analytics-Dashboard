@@ -1,20 +1,31 @@
 // ── Shared validation helpers ─────────────────────────────────
 
 /**
- * Gmail-only email regex — enforces the format: anything@gmail.com
- * Local part: letters, numbers, dots (no leading/trailing/consecutive dots)
+ * General email regex — used for login and API validation.
+ * Accepts any valid email format.
+ */
+export const EMAIL_RE_GENERAL =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+
+/**
+ * Gmail-only regex — used for signup to enforce @gmail.com.
  */
 export const EMAIL_RE =
   /^[a-zA-Z0-9](?:[a-zA-Z0-9.]{0,28}[a-zA-Z0-9])?@gmail\.com$/;
 
-// Kept for reference — only gmail is accepted
 export const COMMON_DOMAINS = ["gmail.com"];
 
+/** Used by login API — accepts any valid email */
 export function isValidEmail(email: string): boolean {
+  return EMAIL_RE_GENERAL.test(email.trim().toLowerCase());
+}
+
+/** Used by signup — only accepts @gmail.com */
+export function isValidGmailEmail(email: string): boolean {
   return EMAIL_RE.test(email.trim().toLowerCase());
 }
 
-/** Returns an error string if invalid, null if valid */
+/** Returns an error string if invalid, null if valid (signup — gmail only) */
 export function validateEmailField(email: string): string | null {
   const e = email.trim();
   if (!e) return "Email address is required";
@@ -25,6 +36,16 @@ export function validateEmailField(email: string): string | null {
     return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
   if (!EMAIL_RE.test(e.toLowerCase()))
     return "Please enter a valid Gmail address (e.g. name@gmail.com)";
+  return null;
+}
+
+/** Returns an error string if invalid, null if valid (login — any email) */
+export function validateLoginEmail(email: string): string | null {
+  const e = email.trim();
+  if (!e) return "Email address is required";
+  if (!e.includes("@")) return "Please include '@' in the email address";
+  if (!EMAIL_RE_GENERAL.test(e.toLowerCase()))
+    return "Please enter a valid email address";
   return null;
 }
 

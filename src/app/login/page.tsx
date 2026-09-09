@@ -4,9 +4,12 @@ import Link from "next/link";
 import { Eye, EyeOff, Orbit, ArrowRight, Loader2, AlertCircle, Mail, Lock } from "lucide-react";
 import clsx from "clsx";
 import ThemeToggle from "@/components/ThemeToggle";
-import { validateEmailField } from "@/lib/validate";
+import { validateLoginEmail } from "@/lib/validate";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function LoginPage() {
+  const { t } = useLanguage();
+
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
   const [showPw,      setShowPw]      = useState(false);
@@ -14,9 +17,8 @@ export default function LoginPage() {
   const [error,       setError]       = useState("");
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
-  // ── Validators ───────────────────────────────────────────────
-  const validateEmail    = (v: string) => validateEmailField(v) ?? "";
-  const validatePassword = (v: string) => (!v ? "Password is required" : "");
+  const validateEmail    = (v: string) => validateLoginEmail(v) ?? "";
+  const validatePassword = (v: string) => (!v ? t("login.passwordRequired") : "");
 
   const handleEmailChange = (v: string) => {
     setEmail(v);
@@ -41,9 +43,9 @@ export default function LoginPage() {
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Sign in failed. Please try again."); return; }
+      if (!res.ok) { setError(data.error ?? t("login.networkError")); return; }
       window.location.href = "/";
-    } catch { setError("Network error — please check your connection and try again."); }
+    } catch { setError(t("login.networkError")); }
     finally { setLoading(false); }
   };
 
@@ -55,7 +57,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 transition-colors">
       <div className="fixed top-4 right-4 z-10"><ThemeToggle /></div>
 
-      {/* Background glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-3xl bg-brand-500/10" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-3xl bg-blue-500/6" />
@@ -63,38 +64,30 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm relative">
 
-        {/* Logo & heading */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-500 mb-4 shadow-lg shadow-brand-500/30">
             <Orbit size={24} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your Orbit dashboard</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("login.welcomeBack")}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t("login.subtitle")}</p>
         </div>
 
         <div className="rounded-2xl p-6 shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
-
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
-            {/* ── Email ── */}
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                Email address
+                {t("login.emailLabel")}
               </label>
               <div className="relative">
                 <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
+                <input id="email" type="email" value={email}
                   onChange={e => handleEmailChange(e.target.value)}
                   onBlur={() => setFieldErrors(p => ({ ...p, email: validateEmail(email) }))}
                   placeholder="name@gmail.com"
-                  autoComplete="email"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  className={clsx(inputBase, "pl-10", fieldErrors.email ? inputErr : inputOk)}
-                />
+                  autoComplete="email" autoCapitalize="off" spellCheck={false}
+                  className={clsx(inputBase, "pl-10", fieldErrors.email ? inputErr : inputOk)} />
               </div>
               {fieldErrors.email && (
                 <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
@@ -103,23 +96,18 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* ── Password ── */}
+            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                Password
+                {t("login.passwordLabel")}
               </label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  id="password"
-                  type={showPw ? "text" : "password"}
-                  value={password}
+                <input id="password" type={showPw ? "text" : "password"} value={password}
                   onChange={e => handlePasswordChange(e.target.value)}
                   onBlur={() => setFieldErrors(p => ({ ...p, password: validatePassword(password) }))}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className={clsx(inputBase, "pl-10 pr-11", fieldErrors.password ? inputErr : inputOk)}
-                />
+                  placeholder="••••••••" autoComplete="current-password"
+                  className={clsx(inputBase, "pl-10 pr-11", fieldErrors.password ? inputErr : inputOk)} />
                 <button type="button" onClick={() => setShowPw(!showPw)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -130,16 +118,14 @@ export default function LoginPage() {
                   <AlertCircle size={11} className="flex-shrink-0" />{fieldErrors.password}
                 </p>
               )}
-              {/* ── Forgot password — below the input ── */}
               <div className="flex justify-end mt-1.5">
                 <Link href="/forgot-password"
                   className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:underline transition-colors">
-                  Forgot password?
+                  {t("login.forgotPassword")}
                 </Link>
               </div>
             </div>
 
-            {/* Server error */}
             {error && (
               <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20">
                 <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -147,20 +133,21 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Submit */}
             <button type="submit" disabled={loading}
               className={clsx("w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all",
                 loading ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
               )}>
-              {loading ? <><Loader2 size={15} className="animate-spin" /> Signing in…</> : <>Sign in <ArrowRight size={15} /></>}
+              {loading
+                ? <><Loader2 size={15} className="animate-spin" />{t("login.signingIn")}</>
+                : <>{t("login.signIn")} <ArrowRight size={15} /></>}
             </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-5">
-          Don&apos;t have an account?{" "}
+          {t("login.noAccount")}{" "}
           <Link href="/signup" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
-            Create one free
+            {t("login.createFree")}
           </Link>
         </p>
       </div>

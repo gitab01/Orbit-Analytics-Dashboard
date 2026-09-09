@@ -3,32 +3,21 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Eye, EyeOff, Orbit, ArrowRight, ArrowLeft,
-  Loader2, Check, AlertCircle, X, KeyRound, Mail,
-  CheckCircle,
+  Loader2, Check, AlertCircle, X, KeyRound, Mail, CheckCircle,
 } from "lucide-react";
 import clsx from "clsx";
 import ThemeToggle from "@/components/ThemeToggle";
-import { isValidEmail, isValidName } from "@/lib/validate";
-
-// ── Password strength rules ───────────────────────────────────
-const PW_RULES = [
-  { id: "len",   label: "At least 8 characters",     test: (p: string) => p.length >= 8   },
-  { id: "upper", label: "One uppercase letter (A–Z)", test: (p: string) => /[A-Z]/.test(p) },
-  { id: "num",   label: "One number (0–9)",           test: (p: string) => /[0-9]/.test(p) },
-];
-
-function strengthLevel(pw: string): "none" | "weak" | "medium" | "strong" {
-  if (!pw) return "none";
-  const n = PW_RULES.filter(r => r.test(pw)).length;
-  return n === 3 ? "strong" : n === 2 ? "medium" : "weak";
-}
+import { isValidGmailEmail, isValidName } from "@/lib/validate";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 type Step = "register" | "verify";
 
 export default function SignupPage() {
+  const { t } = useLanguage();
+
   const [step, setStep] = useState<Step>("register");
 
-  // Step 1 state
+  // Step 1
   const [name,        setName]        = useState("");
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
@@ -39,37 +28,55 @@ export default function SignupPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched,     setTouched]     = useState<Record<string, boolean>>({});
 
-  // Step 2 state
-  const [code,       setCode]       = useState("");
-  const [codeErr,    setCodeErr]    = useState("");
-  const [verifying,  setVerifying]  = useState(false);
-  const [resending,  setResending]  = useState(false);
-  const [resendMsg,  setResendMsg]  = useState("");
+  // Step 2
+  const [code,      setCode]      = useState("");
+  const [codeErr,   setCodeErr]   = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
 
-  const strength = strengthLevel(password);
+  // ── Password strength ─────────────────────────────────────────
+  const PW_RULES = [
+    { id: "len",   label: t("signup.rule8chars"),   test: (p: string) => p.length >= 8   },
+    { id: "upper", label: t("signup.ruleUppercase"), test: (p: string) => /[A-Z]/.test(p) },
+    { id: "num",   label: t("signup.ruleNumber"),   test: (p: string) => /[0-9]/.test(p) },
+  ];
 
-  // ── Validators ───────────────────────────────────────────────
+  function strengthLevel(pw: string): "none"|"weak"|"medium"|"strong" {
+    if (!pw) return "none";
+    const n = PW_RULES.filter(r => r.test(pw)).length;
+    return n === 3 ? "strong" : n === 2 ? "medium" : "weak";
+  }
+
+  const strengthCfg = {
+    none:   { width:"w-0",    color:"bg-gray-300 dark:bg-gray-700", label:"",                text:"" },
+    weak:   { width:"w-1/3",  color:"bg-red-500",                   label:t("signup.weak"),  text:"text-red-500 dark:text-red-400" },
+    medium: { width:"w-2/3",  color:"bg-amber-500",                 label:t("signup.medium"),text:"text-amber-500 dark:text-amber-400" },
+    strong: { width:"w-full", color:"bg-brand-500",                 label:t("signup.strong"),text:"text-brand-600 dark:text-brand-400" },
+  }[strengthLevel(password)];
+
+  // ── Validators ────────────────────────────────────────────────
   const validators: Record<string, (v: string) => string> = {
     name: (v) => isValidName(v) ?? "",
     email: (v) => {
-      if (!v.trim()) return "Email address is required";
+      if (!v.trim()) return t("login.emailRequired");
       if (!v.includes("@")) return "Please include '@' in the email address";
       const [, domain] = v.trim().split("@");
       if (domain?.toLowerCase() !== "gmail.com")
         return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
-      if (!isValidEmail(v)) return "Please enter a valid Gmail address (e.g. name@gmail.com)";
+      if (!isValidGmailEmail(v)) return "Please enter a valid Gmail address (e.g. name@gmail.com)";
       return "";
     },
     password: (v) => {
-      if (!v) return "Password is required";
-      if (v.length < 8) return "Password must be at least 8 characters";
-      if (!/[A-Z]/.test(v)) return "Add at least one uppercase letter";
-      if (!/[0-9]/.test(v)) return "Add at least one number";
+      if (!v) return t("login.passwordRequired");
+      if (v.length < 8) return t("signup.rule8chars");
+      if (!/[A-Z]/.test(v)) return t("signup.ruleUppercase");
+      if (!/[0-9]/.test(v)) return t("signup.ruleNumber");
       return "";
     },
     confirm: (v) => {
-      if (!v) return "Please confirm your password";
-      if (v !== password) return "Passwords do not match";
+      if (!v) return t("signup.confirmPassword");
+      if (v !== password) return t("settings.pwNoMatch");
       return "";
     },
   };
@@ -101,19 +108,16 @@ export default function SignupPage() {
         body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Registration failed. Please try again."); return; }
+      if (!res.ok) { setError(data.error ?? t("signup.failed")); return; }
       setStep("verify");
-    } catch {
-      setError("Network error — please check your connection and try again.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError(t("signup.networkError")); }
+    finally { setLoading(false); }
   };
 
   // ── Step 2: verify code ───────────────────────────────────────
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{6}$/.test(code.trim())) { setCodeErr("Please enter the 6-digit code from your email"); return; }
+    if (!/^\d{6}$/.test(code.trim())) { setCodeErr(t("signup.invalidCode")); return; }
     setCodeErr(""); setError(""); setVerifying(true);
     try {
       const res  = await fetch("/api/auth/verify-email", {
@@ -121,13 +125,10 @@ export default function SignupPage() {
         body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) { setCodeErr(data.error ?? "Invalid code. Please try again."); return; }
+      if (!res.ok) { setCodeErr(data.error ?? t("signup.invalidCode")); return; }
       window.location.href = "/";
-    } catch {
-      setError("Network error — please check your connection and try again.");
-    } finally {
-      setVerifying(false);
-    }
+    } catch { setError(t("signup.networkError")); }
+    finally { setVerifying(false); }
   };
 
   // ── Resend code ───────────────────────────────────────────────
@@ -138,9 +139,9 @@ export default function SignupPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
       });
-      if (res.ok) { setCode(""); setResendMsg("A new code has been sent to your email."); }
-      else setResendMsg("Failed to resend. Please try again.");
-    } catch { setResendMsg("Failed to resend. Please try again."); }
+      if (res.ok) { setCode(""); setResendMsg(t("signup.resendSuccess")); }
+      else setResendMsg(t("signup.resendFailed"));
+    } catch { setResendMsg(t("signup.resendFailed")); }
     finally { setResending(false); }
   };
 
@@ -156,13 +157,6 @@ export default function SignupPage() {
     if (value) return clsx(inputBase, inputGood);
     return clsx(inputBase, inputOk);
   };
-
-  const strengthCfg = {
-    none:   { width: "w-0",    color: "bg-gray-300 dark:bg-gray-700", label: "",       text: "" },
-    weak:   { width: "w-1/3",  color: "bg-red-500",                   label: "Weak",   text: "text-red-500 dark:text-red-400" },
-    medium: { width: "w-2/3",  color: "bg-amber-500",                 label: "Medium", text: "text-amber-500 dark:text-amber-400" },
-    strong: { width: "w-full", color: "bg-brand-500",                 label: "Strong", text: "text-brand-600 dark:text-brand-400" },
-  }[strength];
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 transition-colors">
@@ -181,23 +175,22 @@ export default function SignupPage() {
             <Orbit size={24} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {step === "register" ? "Create your account" : "Verify your email"}
+            {step === "register" ? t("signup.createAccount") : t("signup.verifyTitle")}
           </h1>
           <p className="text-sm text-gray-500 mt-1 text-center">
             {step === "register"
-              ? "Start monitoring your KPIs today"
-              : `We sent a 6-digit code to ${email}`}
+              ? t("signup.subtitle")
+              : t("signup.verifySubtitle", { email })}
           </p>
         </div>
 
         <div className="rounded-2xl p-6 shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
 
-          {/* ── STEP 1: Registration form ── */}
+          {/* ── STEP 1: Registration ── */}
           {step === "register" && (
             <>
-              {/* Benefits */}
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-5">
-                {["Free forever plan", "Real-time charts", "Team collaboration"].map(b => (
+                {[t("signup.freePlan"), t("signup.realtimeCharts"), t("signup.teamCollab")].map(b => (
                   <div key={b} className="flex items-center gap-1.5 text-xs text-gray-500">
                     <Check size={11} className="text-brand-500 flex-shrink-0" />{b}
                   </div>
@@ -208,7 +201,9 @@ export default function SignupPage() {
 
                 {/* Full name */}
                 <div>
-                  <label htmlFor="name" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">Full name</label>
+                  <label htmlFor="name" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                    {t("signup.fullName")}
+                  </label>
                   <input id="name" type="text" value={name}
                     onChange={e => { setName(e.target.value); if (touched.name) validate("name", e.target.value); }}
                     onBlur={() => { touch("name"); validate("name", name); }}
@@ -223,7 +218,9 @@ export default function SignupPage() {
 
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">Email address</label>
+                  <label htmlFor="email" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                    {t("signup.emailAddress")}
+                  </label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input id="email" type="email" value={email}
@@ -241,12 +238,14 @@ export default function SignupPage() {
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">Password</label>
+                  <label htmlFor="password" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                    {t("signup.password")}
+                  </label>
                   <div className="relative">
                     <input id="password" type={showPw ? "text" : "password"} value={password}
                       onChange={e => { setPassword(e.target.value); if (touched.password) validate("password", e.target.value); }}
                       onBlur={() => { touch("password"); validate("password", password); }}
-                      placeholder="Min. 8 characters" autoComplete="new-password"
+                      placeholder={t("signup.passwordMin")} autoComplete="new-password"
                       className={clsx(fieldCls("password", password), "pr-11")} />
                     <button type="button" onClick={() => setShowPw(!showPw)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
@@ -283,12 +282,14 @@ export default function SignupPage() {
 
                 {/* Confirm password */}
                 <div>
-                  <label htmlFor="confirm" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">Confirm password</label>
+                  <label htmlFor="confirm" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                    {t("signup.confirmPassword")}
+                  </label>
                   <div className="relative">
                     <input id="confirm" type={showPw ? "text" : "password"} value={confirm}
                       onChange={e => { setConfirm(e.target.value); if (touched.confirm) validate("confirm", e.target.value); }}
                       onBlur={() => { touch("confirm"); validate("confirm", confirm); }}
-                      placeholder="Repeat your password" autoComplete="new-password"
+                      placeholder={t("signup.repeatPassword")} autoComplete="new-password"
                       className={fieldCls("confirm", confirm)} />
                     {touched.confirm && !fieldErrors.confirm && confirm && (
                       <CheckCircle size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-500" />
@@ -313,68 +314,53 @@ export default function SignupPage() {
                     loading ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
                   )}>
                   {loading
-                    ? <><Loader2 size={15} className="animate-spin" /> Sending code…</>
-                    : <>Create account <ArrowRight size={15} /></>}
+                    ? <><Loader2 size={15} className="animate-spin" /> {t("signup.creating")}</>
+                    : <>{t("signup.createBtn")} <ArrowRight size={15} /></>}
                 </button>
 
                 <p className="text-center text-xs text-gray-400">
-                  By creating an account you agree to our{" "}
+                  {t("signup.termsText")}{" "}
                   <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer underline-offset-2 hover:underline">
-                    Terms of Service
+                    {t("signup.terms")}
                   </span>
                 </p>
               </form>
             </>
           )}
 
-          {/* ── STEP 2: Email verification ── */}
+          {/* ── STEP 2: Verify ── */}
           {step === "verify" && (
             <form onSubmit={handleVerify} noValidate className="space-y-4">
 
-              {/* Envelope icon hint */}
               <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/15 mx-auto mb-2">
                 <Mail size={26} className="text-brand-500" />
               </div>
 
               <div>
                 <label htmlFor="v-code" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                  6-digit verification code
+                  {t("signup.codeLabel")}
                 </label>
                 <div className="relative">
                   <KeyRound size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    id="v-code"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d{6}"
-                    maxLength={6}
+                  <input id="v-code" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6}
                     value={code}
                     onChange={e => { const v = e.target.value.replace(/\D/g, ""); setCode(v); if (codeErr) setCodeErr(""); }}
-                    placeholder="_ _ _ _ _ _"
-                    autoComplete="one-time-code"
-                    className={clsx(
-                      inputBase, "pl-10 tracking-[0.4em] text-center font-mono text-lg",
-                      codeErr ? inputErr : inputOk
-                    )}
-                  />
+                    placeholder="_ _ _ _ _ _" autoComplete="one-time-code"
+                    className={clsx(inputBase, "pl-10 tracking-[0.4em] text-center font-mono text-lg", codeErr ? inputErr : inputOk)} />
                 </div>
                 {codeErr && (
                   <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
                     <AlertCircle size={11} className="flex-shrink-0" />{codeErr}
                   </p>
                 )}
-
-                {/* Resend + expiry */}
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-gray-400">Code expires in 15 minutes</p>
+                  <p className="text-xs text-gray-400">{t("signup.codeExpiry")}</p>
                   <button type="button" disabled={resending} onClick={handleResend}
                     className="text-xs text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 transition-opacity">
-                    {resending ? "Sending…" : "Resend code"}
+                    {resending ? t("signup.resending") : t("signup.resendCode")}
                   </button>
                 </div>
-                {resendMsg && (
-                  <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">{resendMsg}</p>
-                )}
+                {resendMsg && <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">{resendMsg}</p>}
               </div>
 
               {error && (
@@ -391,22 +377,23 @@ export default function SignupPage() {
                     : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
                 )}>
                 {verifying
-                  ? <><Loader2 size={15} className="animate-spin" /> Verifying…</>
-                  : <>Verify & activate account <ArrowRight size={15} /></>}
+                  ? <><Loader2 size={15} className="animate-spin" /> {t("signup.verifying")}</>
+                  : <>{t("signup.verifyBtn")} <ArrowRight size={15} /></>}
               </button>
 
-              <button type="button" onClick={() => { setStep("register"); setCode(""); setCodeErr(""); setError(""); }}
+              <button type="button"
+                onClick={() => { setStep("register"); setCode(""); setCodeErr(""); setError(""); }}
                 className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors py-1">
-                <ArrowLeft size={12} /> Use a different email
+                <ArrowLeft size={12} /> {t("signup.useDifferentEmail")}
               </button>
             </form>
           )}
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-5">
-          Already have an account?{" "}
+          {t("signup.alreadyHave")}{" "}
           <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
-            Sign in
+            {t("signup.signIn")}
           </Link>
         </p>
       </div>
