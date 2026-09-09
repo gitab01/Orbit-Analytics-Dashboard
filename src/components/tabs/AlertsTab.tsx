@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { AlertTriangle, Bell, CheckCircle, XCircle, Activity, TrendingDown, Zap, Trash2, Plus, RefreshCw } from "lucide-react";
 import clsx from "clsx";
 import { useToast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { Alert, AlertRule, AlertSeverity, AlertStatus } from "@/lib/store";
 
 type FilterKey = "all" | AlertSeverity | "snoozed";
@@ -16,6 +17,7 @@ const SEV_CFG: Record<AlertSeverity, { icon: React.ElementType; color: string; b
 
 export default function AlertsTab() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [alerts,  setAlerts]  = useState<Alert[]>([]);
   const [rules,   setRules]   = useState<AlertRule[]>([]);
   const [filter,  setFilter]  = useState<FilterKey>("all");
@@ -38,7 +40,7 @@ export default function AlertsTab() {
     await fetch("/api/alerts", { method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "alert", id, status }) });
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-    toast("success", status === "resolved" ? "Alert resolved" : "Alert snoozed");
+    toast("success", status === "resolved" ? t("alerts.resolved") : t("alerts.snoozedToast"));
   };
 
   const toggleRule = async (id: string, enabled: boolean) => {
@@ -51,18 +53,18 @@ export default function AlertsTab() {
     await fetch("/api/alerts", { method: "DELETE", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }) });
     setRules(prev => prev.filter(r => r.id !== id));
-    toast("success", "Rule deleted");
+    toast("success", t("alerts.ruleDeleted"));
   };
 
   const addRule = async () => {
-    if (!newRule.name || !newRule.trigger) { toast("error", "Fill in all fields"); return; }
+    if (!newRule.name || !newRule.trigger) { toast("error", t("alerts.fillAllFields")); return; }
     const res = await fetch("/api/alerts", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newRule) });
     const rule = await res.json();
     setRules(prev => [...prev, rule]);
     setNewRule({ name:"", trigger:"", channel:"Email" });
     setShowForm(false);
-    toast("success", "Alert rule created");
+    toast("success", t("alerts.ruleCreated"));
   };
 
   const visible = alerts.filter(a => {
@@ -76,10 +78,10 @@ export default function AlertsTab() {
   const snoozed  = alerts.filter(a => a.status === "snoozed").length;
 
   const STATS = [
-    { label:"Active Alerts", value: active,      icon: Bell,         color:"text-red-500 dark:text-red-400",    bg:"bg-red-50 dark:bg-red-500/10"    },
-    { label:"Resolved Today",value: resolved,     icon: CheckCircle,  color:"text-brand-600 dark:text-brand-400",bg:"bg-brand-50 dark:bg-brand-500/10"  },
-    { label:"Snoozed",       value: snoozed,      icon: Activity,     color:"text-amber-500 dark:text-amber-400",bg:"bg-amber-50 dark:bg-amber-500/10"  },
-    { label:"Alert Rules",   value: rules.length, icon: TrendingDown, color:"text-blue-500 dark:text-blue-400",  bg:"bg-blue-50 dark:bg-blue-500/10"   },
+    { label: t("alerts.activeAlerts"),  value: active,       icon: Bell,         color:"text-red-500 dark:text-red-400",    bg:"bg-red-50 dark:bg-red-500/10"    },
+    { label: t("alerts.resolvedToday"), value: resolved,     icon: CheckCircle,  color:"text-brand-600 dark:text-brand-400",bg:"bg-brand-50 dark:bg-brand-500/10"  },
+    { label: t("alerts.snoozed"),       value: snoozed,      icon: Activity,     color:"text-amber-500 dark:text-amber-400",bg:"bg-amber-50 dark:bg-amber-500/10"  },
+    { label: t("alerts.alertRules"),    value: rules.length, icon: TrendingDown, color:"text-blue-500 dark:text-blue-400",  bg:"bg-blue-50 dark:bg-blue-500/10"   },
   ];
 
   return (
@@ -106,18 +108,17 @@ export default function AlertsTab() {
         <div className="xl:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl">
           <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-gray-200 dark:border-gray-800">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Alert Feed</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{visible.length} showing</p>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("alerts.alertFeed")}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t("alerts.showing", { n: visible.length })}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {(["all","critical","warning","info","snoozed"] as FilterKey[]).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
-                  className={clsx(
-                    "px-3 py-1 rounded-full text-xs font-medium border transition-all capitalize",
+                  className={clsx("px-3 py-1 rounded-full text-xs font-medium border transition-all capitalize",
                     filter === f
                       ? "bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-500/30"
                       : "text-gray-500 border-gray-200 dark:border-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
-                  )}>{f}</button>
+                  )}>{f === "all" ? t("alerts.all") : f === "snoozed" ? t("alerts.snoozed") : t(`alerts.${f}` as any)}</button>
               ))}
               <button onClick={fetchAll} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
                 <RefreshCw size={13} className={clsx(loading && "animate-spin")} />
@@ -126,12 +127,12 @@ export default function AlertsTab() {
           </div>
 
           <div className="divide-y divide-gray-100 dark:divide-gray-800/60">
-            {loading && <p className="text-sm text-gray-500 text-center py-10">Loading…</p>}
+            {loading && <p className="text-sm text-gray-500 text-center py-10">{t("chart.loading")}</p>}
             {!loading && visible.length === 0 && (
               <div className="flex flex-col items-center py-12 text-center">
                 <CheckCircle size={32} className="text-brand-500 mb-3" />
-                <p className="text-sm font-medium text-gray-900 dark:text-white">All clear!</p>
-                <p className="text-xs text-gray-500 mt-1">No alerts match this filter.</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{t("alerts.allClear")}</p>
+                <p className="text-xs text-gray-500 mt-1">{t("alerts.noMatch")}</p>
               </div>
             )}
             {visible.map(alert => {
@@ -178,28 +179,28 @@ export default function AlertsTab() {
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Alert Rules</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{rules.length} rules</p>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("alerts.rules")}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t("alerts.nRules", { n: rules.length })}</p>
             </div>
             <button onClick={() => setShowForm(!showForm)}
               className="flex items-center gap-1 px-2.5 py-1.5 bg-brand-500 rounded-lg text-xs text-white font-medium hover:bg-brand-600 transition-colors">
-              <Plus size={12} /> Add
+              <Plus size={12} /> {t("alerts.add")}
             </button>
           </div>
 
           {showForm && (
             <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
-              <input placeholder="Rule name" value={newRule.name} onChange={e => setNewRule(p => ({ ...p, name: e.target.value }))}
+              <input placeholder={t("alerts.ruleName")} value={newRule.name} onChange={e => setNewRule(p => ({ ...p, name: e.target.value }))}
                 className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-brand-500" />
-              <input placeholder="Trigger (e.g. Churn > 5%)" value={newRule.trigger} onChange={e => setNewRule(p => ({ ...p, trigger: e.target.value }))}
+              <input placeholder={t("alerts.trigger")} value={newRule.trigger} onChange={e => setNewRule(p => ({ ...p, trigger: e.target.value }))}
                 className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-brand-500" />
               <select value={newRule.channel} onChange={e => setNewRule(p => ({ ...p, channel: e.target.value }))}
                 className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-500">
                 {["Email","Slack","PagerDuty","Slack + Email"].map(c => <option key={c}>{c}</option>)}
               </select>
               <div className="flex gap-2">
-                <button onClick={addRule} className="flex-1 py-2 bg-brand-500 text-white text-xs font-medium rounded-lg hover:bg-brand-600 transition-colors">Create</button>
-                <button onClick={() => setShowForm(false)} className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+                <button onClick={addRule} className="flex-1 py-2 bg-brand-500 text-white text-xs font-medium rounded-lg hover:bg-brand-600 transition-colors">{t("alerts.create")}</button>
+                <button onClick={() => setShowForm(false)} className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">{t("alerts.cancel")}</button>
               </div>
             </div>
           )}
@@ -220,8 +221,8 @@ export default function AlertsTab() {
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">Trigger: <span className="text-gray-600 dark:text-gray-400">{rule.trigger}</span></p>
-                <p className="text-xs text-gray-500 mt-0.5">Channel: <span className="text-gray-600 dark:text-gray-400">{rule.channel}</span></p>
+                <p className="text-xs text-gray-500">{t("alerts.triggerLabel")} <span className="text-gray-600 dark:text-gray-400">{rule.trigger}</span></p>
+                <p className="text-xs text-gray-500 mt-0.5">{t("alerts.channelLabel")} <span className="text-gray-600 dark:text-gray-400">{rule.channel}</span></p>
               </div>
             ))}
           </div>

@@ -4,13 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import clsx from "clsx";
 import type { DataPoint } from "@/lib/store";
 import { useTheme } from "@/lib/ThemeContext";
-
-const METRICS = [
-  { key: "revenue",     label: "Revenue",     color: "#15b382" },
-  { key: "users",       label: "Users",       color: "#3b82f6" },
-  { key: "sessions",    label: "Sessions",    color: "#a855f7" },
-  { key: "conversions", label: "Conversions", color: "#f59e0b" },
-];
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 const fmt = (key: string, v: number) =>
   key === "revenue" ? `ETB ${(v / 1000).toFixed(1)}k` : v.toLocaleString();
@@ -34,7 +28,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function RevenueChart({ data }: { data: DataPoint[] }) {
   const [active, setActive] = useState<string[]>(["revenue"]);
   const { resolved } = useTheme();
+  const { t } = useLanguage();
   const isDark = resolved === "dark";
+
+  const METRICS = [
+    { key: "revenue",     label: t("chart.revenue"),     color: "#15b382" },
+    { key: "users",       label: t("chart.users"),       color: "#3b82f6" },
+    { key: "sessions",    label: t("chart.sessions"),    color: "#a855f7" },
+    { key: "conversions", label: t("chart.conversions"), color: "#f59e0b" },
+  ];
+
   const toggle = (k: string) =>
     setActive(p => p.includes(k) ? p.filter(x => x !== k) : [...p, k]);
 
@@ -42,8 +45,8 @@ export default function RevenueChart({ data }: { data: DataPoint[] }) {
     <div className="rounded-xl p-4 sm:p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Performance Over Time</h3>
-          <p className="text-xs text-gray-500 mt-0.5">{data.length} data points</p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("chart.performanceOverTime")}</h3>
+          <p className="text-xs text-gray-500 mt-0.5">{t("chart.dataPoints", { n: data.length })}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {METRICS.map(m => (

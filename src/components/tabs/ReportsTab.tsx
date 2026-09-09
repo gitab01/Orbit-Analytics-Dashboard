@@ -6,37 +6,40 @@ import clsx from "clsx";
 import { useDashboard } from "@/lib/DashboardContext";
 import { useToast } from "@/components/Toast";
 import { useTheme } from "@/lib/ThemeContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { ScheduledReport } from "@/lib/store";
 
-const TYPES = [
-  { id:"revenue",  label:"Revenue Report",     icon:TrendingUp, color:"brand",  desc:"Monthly & quarterly revenue breakdown" },
-  { id:"users",    label:"User Growth Report",  icon:Users,      color:"blue",   desc:"Signups, churn and retention analysis" },
-  { id:"sessions", label:"Traffic Report",      icon:Activity,   color:"purple", desc:"Sessions, bounce rates and engagement" },
-  { id:"kpi",      label:"KPI Summary",         icon:BarChart2,  color:"amber",  desc:"All key performance indicators at once" },
-];
-
 const ICON_BG: Record<string,string> = {
-  brand:"bg-brand-500/15 text-brand-500 dark:text-brand-400",
-  blue:"bg-blue-500/15 text-blue-500 dark:text-blue-400",
-  purple:"bg-purple-500/15 text-purple-500 dark:text-purple-400",
-  amber:"bg-amber-500/15 text-amber-500 dark:text-amber-400",
+  brand:  "bg-brand-500/15 text-brand-500 dark:text-brand-400",
+  blue:   "bg-blue-500/15  text-blue-500  dark:text-blue-400",
+  purple: "bg-purple-500/15 text-purple-500 dark:text-purple-400",
+  amber:  "bg-amber-500/15 text-amber-500  dark:text-amber-400",
 };
 
 const FREQS = ["Every day","Every Monday","Every Sunday","Every Wednesday","1st of month","1st of quarter"];
 
 export default function ReportsTab() {
-  const { toast }         = useToast();
+  const { toast }                = useToast();
   const { filteredSeries, data } = useDashboard();
-  const { resolved } = useTheme();
+  const { resolved }             = useTheme();
+  const { t }                    = useLanguage();
   const isDark = resolved === "dark";
-  const [activeType,  setActiveType]  = useState("revenue");
-  const [reports,     setReports]     = useState<ScheduledReport[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [showForm,    setShowForm]    = useState(false);
-  const [newReport,   setNewReport]   = useState({ name:"", freq: FREQS[1], type:"kpi" });
 
-  const gridColor   = isDark ? "#1f2937" : "#e5e7eb";
-  const tooltipStyle = { background: isDark ? "#1f2937" : "#fff", border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`, borderRadius: 8 };
+  const TYPES = [
+    { id:"revenue",  label: t("reports.revenueReport"),  icon: TrendingUp, color:"brand",  desc: t("reports.revenueReport") },
+    { id:"users",    label: t("reports.userGrowth"),     icon: Users,      color:"blue",   desc: t("reports.userGrowth")    },
+    { id:"sessions", label: t("reports.trafficReport"),  icon: Activity,   color:"purple", desc: t("reports.trafficReport") },
+    { id:"kpi",      label: t("reports.kpiSummary"),     icon: BarChart2,  color:"amber",  desc: t("reports.kpiSummary")    },
+  ];
+
+  const [activeType, setActiveType] = useState("revenue");
+  const [reports,    setReports]    = useState<ScheduledReport[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [showForm,   setShowForm]   = useState(false);
+  const [newReport,  setNewReport]  = useState({ name:"", freq: FREQS[1], type:"kpi" });
+
+  const gridColor    = isDark ? "#1f2937" : "#e5e7eb";
+  const tooltipStyle = { background: isDark ? "#1f2937" : "#fff", border:`1px solid ${isDark ? "#374151" : "#e5e7eb"}`, borderRadius:8 };
 
   const fetchReports = async () => {
     setLoading(true);
@@ -48,60 +51,52 @@ export default function ReportsTab() {
   useEffect(() => { fetchReports(); }, []);
 
   const createReport = async () => {
-    if (!newReport.name) { toast("error", "Enter a report name"); return; }
-    const res  = await fetch("/api/reports", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(newReport) });
+    if (!newReport.name) { toast("error", t("reports.enterName")); return; }
+    const res     = await fetch("/api/reports", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(newReport) });
     const created = await res.json();
+    if (!res.ok) { toast("error", created.error ?? "Failed"); return; }
     setReports(p => [...p, created]);
     setNewReport({ name:"", freq: FREQS[1], type:"kpi" });
     setShowForm(false);
-    toast("success", "Scheduled report created");
+    toast("success", t("reports.created"));
   };
 
   const toggleReport = async (id: string, status: string) => {
     const next = status === "active" ? "paused" : "active";
     await fetch("/api/reports", { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ id, status: next }) });
     setReports(p => p.map(r => r.id === id ? { ...r, status: next as "active"|"paused" } : r));
-    toast("success", next === "active" ? "Report resumed" : "Report paused");
+    toast("success", next === "active" ? t("reports.resumed") : t("reports.pausedToast"));
   };
 
   const deleteReport = async (id: string) => {
     await fetch("/api/reports", { method:"DELETE", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ id }) });
     setReports(p => p.filter(r => r.id !== id));
-    toast("success", "Report deleted");
+    toast("success", t("reports.deleted"));
   };
 
   const exportCSV = (type: string) => {
-    if (!filteredSeries.length) { toast("error", "No data to export"); return; }
+    if (!filteredSeries.length) { toast("error", t("reports.noData")); return; }
     let header: string, rows: string[];
-    if (type === "revenue") {
-      header = "Date,Revenue (ETB)";
-      rows   = filteredSeries.map(r => `${r.date},${r.revenue}`);
-    } else if (type === "users") {
-      header = "Date,Active Users";
-      rows   = filteredSeries.map(r => `${r.date},${r.users}`);
-    } else if (type === "sessions") {
-      header = "Date,Sessions,Conversions";
-      rows   = filteredSeries.map(r => `${r.date},${r.sessions},${r.conversions}`);
-    } else {
-      header = "Date,Revenue,Users,Sessions,Conversions";
-      rows   = filteredSeries.map(r => `${r.date},${r.revenue},${r.users},${r.sessions},${r.conversions}`);
-    }
+    if (type === "revenue")       { header = "Date,Revenue"; rows = filteredSeries.map(r => `${r.date},${r.revenue}`); }
+    else if (type === "users")    { header = "Date,Users";   rows = filteredSeries.map(r => `${r.date},${r.users}`); }
+    else if (type === "sessions") { header = "Date,Sessions,Conversions"; rows = filteredSeries.map(r => `${r.date},${r.sessions},${r.conversions}`); }
+    else                          { header = "Date,Revenue,Users,Sessions,Conversions"; rows = filteredSeries.map(r => `${r.date},${r.revenue},${r.users},${r.sessions},${r.conversions}`); }
     const blob = new Blob([[header,...rows].join("\n")], { type:"text/csv" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a"); a.href = url; a.download = `orbit-${type}-report.csv`; a.click();
     URL.revokeObjectURL(url);
-    toast("success", `${TYPES.find(t => t.id === type)?.label} exported`);
+    toast("success", t("reports.exported", { label: TYPES.find(tp => tp.id === type)?.label ?? type }));
   };
 
-  const chartData = filteredSeries.slice(-14);
-  const active    = TYPES.find(t => t.id === activeType)!;
+  const chartData  = filteredSeries.slice(-14);
+  const activeType_ = TYPES.find(tp => tp.id === activeType)!;
 
   return (
     <div className="space-y-6 animate-fade-in">
 
       {/* Type selector */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-        {TYPES.map(({ id, label, icon:Icon, color, desc }) => (
+        {TYPES.map(({ id, label, icon:Icon, color }) => (
           <button key={id} onClick={() => setActiveType(id)}
             className={clsx("text-left p-3 sm:p-4 rounded-xl border transition-all",
               activeType === id
@@ -111,8 +106,7 @@ export default function ReportsTab() {
             <div className={clsx("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center mb-2 sm:mb-3", ICON_BG[color])}>
               <Icon size={16} />
             </div>
-            <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-0.5 sm:mb-1">{label}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">{desc}</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{label}</p>
           </button>
         ))}
       </div>
@@ -122,30 +116,23 @@ export default function ReportsTab() {
         <div className="xl:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{active.label} — Preview</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{chartData.length} days · Live data</p>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{activeType_?.label} — {t("reports.preview")}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t("reports.days", { n: chartData.length })} · {t("reports.liveData")}</p>
             </div>
             <button onClick={() => exportCSV(activeType)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 rounded-lg text-xs text-white font-medium hover:bg-brand-600 transition-colors">
-              <Download size={12} /> Export CSV
+              <Download size={12} /> {t("reports.exportCSV")}
             </button>
           </div>
 
           {(activeType === "revenue" || activeType === "kpi") && (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={chartData} margin={{ top:5, right:5, bottom:0, left:0 }}>
-                <defs>
-                  <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#15b382" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#15b382" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+                <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#15b382" stopOpacity={0.25} /><stop offset="95%" stopColor="#15b382" stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis dataKey="date" tick={{ fill:"#6b7280", fontSize:11 }} axisLine={false} tickLine={false} interval={2} />
                 <YAxis tick={{ fill:"#6b7280", fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v => `ETB ${(v/1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={tooltipStyle}
-                  labelStyle={{ color:"#9ca3af", fontSize:11 }} itemStyle={{ color: isDark ? "#fff" : "#111827", fontSize:12 }}
-                  formatter={(v: number) => [`ETB ${v.toLocaleString()}`, "Revenue"]} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={{ color:"#9ca3af", fontSize:11 }} itemStyle={{ color: isDark ? "#fff" : "#111827", fontSize:12 }} formatter={(v: number) => [`ETB ${v.toLocaleString()}`, t("chart.revenue")]} />
                 <Area type="monotone" dataKey="revenue" stroke="#15b382" strokeWidth={2} fill="url(#rg)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
@@ -158,9 +145,7 @@ export default function ReportsTab() {
                 <YAxis tick={{ fill:"#6b7280", fontSize:11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="users" radius={[4,4,0,0]}>
-                  {chartData.map((_,i) => (
-                    <Cell key={i} fill={i === chartData.length-1 ? "#3b82f6" : isDark ? "#1e3a5f" : "#bfdbfe"} />
-                  ))}
+                  {chartData.map((_,i) => <Cell key={i} fill={i === chartData.length-1 ? "#3b82f6" : isDark ? "#1e3a5f" : "#bfdbfe"} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -168,12 +153,7 @@ export default function ReportsTab() {
           {activeType === "sessions" && (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={chartData} margin={{ top:5, right:5, bottom:0, left:0 }}>
-                <defs>
-                  <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+                <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#a855f7" stopOpacity={0.25} /><stop offset="95%" stopColor="#a855f7" stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis dataKey="date" tick={{ fill:"#6b7280", fontSize:11 }} axisLine={false} tickLine={false} interval={2} />
                 <YAxis tick={{ fill:"#6b7280", fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
@@ -183,7 +163,6 @@ export default function ReportsTab() {
             </ResponsiveContainer>
           )}
 
-          {/* KPI summary row */}
           {data && (
             <div className="grid grid-cols-3 gap-3 mt-5">
               {data.kpi.slice(0,3).map(m => (
@@ -197,21 +176,21 @@ export default function ReportsTab() {
           )}
         </div>
 
-        {/* Archive */}
+        {/* Recent exports */}
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Recent Exports</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t("reports.recentExports")}</h3>
           <div className="space-y-2">
-            {TYPES.map(t => (
-              <div key={t.id}
+            {TYPES.map(tp => (
+              <div key={tp.id}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group cursor-pointer border border-gray-100 dark:border-transparent"
-                onClick={() => exportCSV(t.id)}>
+                onClick={() => exportCSV(tp.id)}>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center flex-shrink-0">
                     <FileText size={14} className="text-brand-600 dark:text-brand-400" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-900 dark:text-white">{t.label}</p>
-                    <p className="text-xs text-gray-500">CSV · Live data</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">{tp.label}</p>
+                    <p className="text-xs text-gray-500">{t("reports.csvLive")}</p>
                   </div>
                 </div>
                 <Download size={13} className="text-gray-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors flex-shrink-0" />
@@ -225,8 +204,8 @@ export default function ReportsTab() {
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl">
         <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-800">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Scheduled Reports</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Auto-delivered to your inbox</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("reports.scheduled")}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{t("reports.autoDelivered")}</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={fetchReports} className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
@@ -234,7 +213,7 @@ export default function ReportsTab() {
             </button>
             <button onClick={() => setShowForm(!showForm)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 rounded-lg text-xs text-white font-medium hover:bg-brand-600 transition-colors">
-              <Plus size={12} /> New Schedule
+              <Plus size={12} /> {t("reports.newSchedule")}
             </button>
           </div>
         </div>
@@ -242,7 +221,7 @@ export default function ReportsTab() {
         {showForm && (
           <div className="p-5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <input placeholder="Report name" value={newReport.name} onChange={e => setNewReport(p => ({ ...p, name: e.target.value }))}
+              <input placeholder={t("reports.reportName")} value={newReport.name} onChange={e => setNewReport(p => ({ ...p, name: e.target.value }))}
                 className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-brand-500" />
               <select value={newReport.freq} onChange={e => setNewReport(p => ({ ...p, freq: e.target.value }))}
                 className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-500">
@@ -250,12 +229,12 @@ export default function ReportsTab() {
               </select>
               <select value={newReport.type} onChange={e => setNewReport(p => ({ ...p, type: e.target.value }))}
                 className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-500">
-                {TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                {TYPES.map(tp => <option key={tp.id} value={tp.id}>{tp.label}</option>)}
               </select>
             </div>
             <div className="flex gap-2">
-              <button onClick={createReport} className="px-5 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors">Create</button>
-              <button onClick={() => setShowForm(false)} className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+              <button onClick={createReport} className="px-5 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors">{t("reports.create")}</button>
+              <button onClick={() => setShowForm(false)} className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">{t("reports.cancel")}</button>
             </div>
           </div>
         )}
@@ -264,12 +243,12 @@ export default function ReportsTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800">
-                <th className="text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Report Name</th>
-                <th className="hidden sm:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="hidden md:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
-                <th className="hidden md:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sent</th>
-                <th className="text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 sm:px-5 py-3"></th>
+                <th className="text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t("reports.name")}</th>
+                <th className="hidden sm:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t("reports.type")}</th>
+                <th className="hidden md:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t("reports.frequency")}</th>
+                <th className="hidden md:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t("reports.lastSent")}</th>
+                <th className="text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t("reports.status")}</th>
+                <th className="px-4 sm:px-5 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
@@ -291,7 +270,7 @@ export default function ReportsTab() {
                           ? "bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-500/20"
                           : "bg-gray-100 dark:bg-gray-700/50 text-gray-500 border-gray-200 dark:border-gray-700"
                       )}>
-                      {r.status === "active" ? "Active" : "Paused"}
+                      {r.status === "active" ? t("reports.active") : t("reports.paused")}
                     </button>
                   </td>
                   <td className="px-4 sm:px-5 py-3.5 text-right">
@@ -302,7 +281,7 @@ export default function ReportsTab() {
                 </tr>
               ))}
               {reports.length === 0 && !loading && (
-                <tr><td colSpan={6} className="text-center text-gray-500 text-sm py-8">No scheduled reports. Create one above.</td></tr>
+                <tr><td colSpan={6} className="text-center text-gray-500 text-sm py-8">{t("reports.noReports")}</td></tr>
               )}
             </tbody>
           </table>

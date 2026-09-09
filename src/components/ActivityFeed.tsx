@@ -1,6 +1,7 @@
 "use client";
 import { UserPlus, TrendingUp, AlertTriangle, TrendingDown } from "lucide-react";
 import { useDashboard } from "@/lib/DashboardContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import clsx from "clsx";
 
 const cfg = {
@@ -12,20 +13,22 @@ const cfg = {
 
 export default function ActivityFeed() {
   const { data, loading } = useDashboard();
+  const { t } = useLanguage();
   const events = data?.events ?? [];
 
   return (
     <div className="rounded-xl p-4 sm:p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between mb-4 sm:mb-5">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Activity Feed</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Real-time events</p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("feed.activityFeed")}</h3>
+          <p className="text-xs text-gray-500 mt-0.5">{t("feed.realtime")}</p>
         </div>
         <span className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400">
           <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-          Live
+          {t("feed.live")}
         </span>
       </div>
+
       {loading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
@@ -39,7 +42,9 @@ export default function ActivityFeed() {
             const Icon = c.icon;
             return (
               <div key={e.id} className={clsx("flex items-start gap-3 p-3 rounded-lg border", c.bg, c.border)}>
-                <div className={clsx("flex-shrink-0 mt-0.5", c.color)}><Icon size={14} /></div>
+                <div className={clsx("flex-shrink-0 mt-0.5", c.color)}>
+                  <Icon size={14} />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{e.message}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{e.time}</p>

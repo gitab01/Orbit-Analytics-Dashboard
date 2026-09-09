@@ -26,7 +26,8 @@ export async function GET() {
         p.default_view  AS "defaultView",
         p.refresh_rate  AS "refreshRate",
         p.theme,
-        p.notifications
+        p.notifications,
+        p.avatar_url    AS "avatarUrl"
       FROM users u
       JOIN profiles p ON p.user_id = u.id
       WHERE u.id = ${userId}

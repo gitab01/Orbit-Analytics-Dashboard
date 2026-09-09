@@ -3,6 +3,7 @@ import "./globals.css";
 import { DashboardProvider } from "@/lib/DashboardContext";
 import { ToastProvider } from "@/components/Toast";
 import { ThemeProvider } from "@/lib/ThemeContext";
+import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 
 export const metadata: Metadata = {
   title: "Orbit Analytics — KPI Dashboard",
@@ -36,11 +37,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased transition-colors duration-200">
         <ThemeProvider>
-          <DashboardProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </DashboardProvider>
+          <LanguageProvider>
+            <DashboardProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </DashboardProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

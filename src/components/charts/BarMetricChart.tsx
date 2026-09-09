@@ -2,35 +2,37 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useDashboard } from "@/lib/DashboardContext";
 import { useTheme } from "@/lib/ThemeContext";
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-xl">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-        {payload[0].value.toLocaleString()} conversions
-      </p>
-    </div>
-  );
-};
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function BarMetricChart() {
   const { filteredSeries, loading } = useDashboard();
   const { resolved } = useTheme();
+  const { t } = useLanguage();
   const isDark = resolved === "dark";
   const data = filteredSeries.slice(-14);
   const max  = Math.max(...data.map(d => d.conversions));
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-xl">
+        <p className="text-xs text-gray-500 mb-1">{label}</p>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+          {payload[0].value.toLocaleString()} {t("chart.conversions").toLowerCase()}
+        </p>
+      </div>
+    );
+  };
+
   return (
     <div className="rounded-xl p-4 sm:p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
       <div className="mb-4 sm:mb-5">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Daily Conversions</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Last 14 days</p>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("chart.dailyConversions")}</h3>
+        <p className="text-xs text-gray-500 mt-0.5">{t("chart.last14Days")}</p>
       </div>
       {loading ? (
         <div className="h-[180px] flex items-center justify-center">
-          <span className="text-xs text-gray-500 animate-pulse">Loading…</span>
+          <span className="text-xs text-gray-500 animate-pulse">{t("chart.loading")}</span>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={180}>
@@ -41,11 +43,7 @@ export default function BarMetricChart() {
             <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)" }} />
             <Bar dataKey="conversions" radius={[4, 4, 0, 0]}>
               {data.map((e, i) => (
-                <Cell key={i} fill={
-                  e.conversions === max
-                    ? "#15b382"
-                    : isDark ? "#1e3a2f" : "#d1fae5"
-                } />
+                <Cell key={i} fill={e.conversions === max ? "#15b382" : isDark ? "#1e3a2f" : "#d1fae5"} />
               ))}
             </Bar>
           </BarChart>

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 import { useDashboard } from "@/lib/DashboardContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
@@ -20,18 +21,19 @@ const renderActiveShape = (props: any) => {
 
 export default function TrafficPieChart() {
   const { data, loading } = useDashboard();
+  const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const traffic = data?.traffic ?? [];
 
   return (
     <div className="rounded-xl p-4 sm:p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Traffic Sources</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Distribution by channel</p>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("chart.trafficSources")}</h3>
+        <p className="text-xs text-gray-500 mt-0.5">{t("chart.distributionByChannel")}</p>
       </div>
       {loading ? (
         <div className="h-[200px] flex items-center justify-center">
-          <span className="text-xs text-gray-500 animate-pulse">Loading…</span>
+          <span className="text-xs text-gray-500 animate-pulse">{t("chart.loading")}</span>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>

@@ -5,12 +5,13 @@ import clsx from "clsx";
 import { useDashboard, type DateRange } from "@/lib/DashboardContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Alert } from "@/lib/store";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
-const DATE_RANGES: { label: string; value: DateRange }[] = [
-  { label: "Last 7 days",  value: "7d"  },
-  { label: "Last 30 days", value: "30d" },
-  { label: "Last 90 days", value: "90d" },
-  { label: "This year",    value: "1y"  },
+const DATE_RANGES_STATIC: { value: DateRange }[] = [
+  { value: "7d"  },
+  { value: "30d" },
+  { value: "90d" },
+  { value: "1y"  },
 ];
 
 interface Props {
@@ -23,10 +24,16 @@ interface Props {
 
 export default function Header({ title, isRefreshing, onRefresh, onTabChange, onMobileMenuOpen }: Props) {
   const { dateRange, setDateRange, filteredSeries, searchQuery, setSearchQuery } = useDashboard();
+  const { t } = useLanguage();
   const [showRange, setShowRange] = useState(false);
   const [showBell,  setShowBell]  = useState(false);
   const [alerts,    setAlerts]    = useState<Alert[]>([]);
   const bellRef = useRef<HTMLDivElement>(null);
+
+  const DATE_RANGES = DATE_RANGES_STATIC.map(r => ({
+    value: r.value,
+    label: t(`header.${r.value === "7d" ? "last7" : r.value === "30d" ? "last30" : r.value === "90d" ? "last90" : "thisYear"}` as any),
+  }));
 
   useEffect(() => {
     fetch("/api/alerts").then(r => r.json()).then(d => {
@@ -53,7 +60,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
     a.click(); URL.revokeObjectURL(url);
   };
 
-  const activeLabel = DATE_RANGES.find(r => r.value === dateRange)?.label ?? "Last 30 days";
+  const activeLabel = DATE_RANGES.find(r => r.value === dateRange)?.label ?? t("header.last30");
   const badgeCount  = alerts.length;
 
   return (
@@ -74,7 +81,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
         <div>
           <h1 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white leading-tight">{title}</h1>
           <p className="text-xs text-gray-500 dark:text-gray-500 hidden sm:block">
-            Last updated: {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {t("header.lastUpdated")} {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
       </div>
@@ -87,7 +94,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
           <Search size={14} className="absolute left-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search metrics, pages…"
+            placeholder={t("header.search")}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pl-8 pr-8 py-2 text-sm rounded-lg border w-52 transition-all
@@ -133,7 +140,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
         <ThemeToggle />
 
         {/* Refresh */}
-        <button onClick={onRefresh} title="Refresh data"
+        <button onClick={onRefresh} title={t("header.refresh")}
           className="flex items-center justify-center w-9 h-9 rounded-lg border transition-colors
             bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700
             text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white
@@ -146,7 +153,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
           className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors
             bg-brand-500 hover:bg-brand-600 text-white">
           <Download size={14} />
-          <span className="hidden sm:inline">Export</span>
+          <span className="hidden sm:inline">{t("header.export")}</span>
         </button>
 
         {/* Notifications bell */}
@@ -167,12 +174,12 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
             <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-xl border shadow-2xl z-30 overflow-hidden
               bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</p>
-                <span className="text-xs text-gray-500">{badgeCount} active</span>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t("header.notifications")}</p>
+                <span className="text-xs text-gray-500">{badgeCount} {t("header.active")}</span>
               </div>
               <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/50">
                 {alerts.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-6">All clear 🎉</p>
+                  <p className="text-sm text-gray-500 text-center py-6">{t("header.noAlerts")}</p>
                 )}
                 {alerts.map(a => (
                   <div key={a.id}
@@ -187,7 +194,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange, on
               <div className="px-4 py-2.5 border-t border-gray-200 dark:border-gray-700">
                 <button onClick={() => { onTabChange("alerts"); setShowBell(false); }}
                   className="w-full text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors">
-                  View all alerts →
+                  {t("header.viewAllAlerts")}
                 </button>
               </div>
             </div>

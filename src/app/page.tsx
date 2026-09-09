@@ -15,14 +15,9 @@ import AlertsTab from "@/components/tabs/AlertsTab";
 import HelpTab from "@/components/tabs/HelpTab";
 import SettingsTab from "@/components/tabs/SettingsTab";
 import { useDashboard } from "@/lib/DashboardContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
-const TAB_TITLES: Record<string,string> = {
-  overview: "Overview",  revenue:  "Revenue Analytics",
-  users:    "Users",     sessions: "Sessions & Traffic",
-  analytics:"Analytics", reports:  "Reports",
-  alerts:   "Alerts",    help:     "Help & Support",
-  settings: "Settings",
-};
+// TAB_TITLES now generated inside DashboardPage using t()
 
 export default function DashboardPage() {
   const [activeTab,      setActiveTab]      = useState("overview");
@@ -30,7 +25,20 @@ export default function DashboardPage() {
   const [mobileNavOpen,  setMobileNavOpen]  = useState(false);
   const [authed,         setAuthed]         = useState(false);
   const { refresh } = useDashboard();
+  const { t } = useLanguage();
   const router = useRouter();
+
+  const TAB_TITLES: Record<string,string> = {
+    overview:  t("title.overview"),
+    revenue:   t("title.revenue"),
+    users:     t("title.users"),
+    sessions:  t("title.sessions"),
+    analytics: t("title.analytics"),
+    reports:   t("title.reports"),
+    alerts:    t("title.alerts"),
+    help:      t("title.help"),
+    settings:  t("title.settings"),
+  };
 
   // Client-side auth guard — fallback if middleware doesn't catch it
   useEffect(() => {

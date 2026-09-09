@@ -6,20 +6,7 @@ import {
   Activity, FileText, LogOut, X,
 } from "lucide-react";
 import clsx from "clsx";
-
-const NAV = [
-  { icon: LayoutDashboard, label: "Overview",  id: "overview"  },
-  { icon: TrendingUp,      label: "Revenue",   id: "revenue"   },
-  { icon: Users,           label: "Users",     id: "users"     },
-  { icon: Activity,        label: "Sessions",  id: "sessions"  },
-  { icon: BarChart3,       label: "Analytics", id: "analytics" },
-  { icon: FileText,        label: "Reports",   id: "reports"   },
-];
-const BOTTOM = [
-  { icon: Bell,        label: "Alerts",   id: "alerts"   },
-  { icon: HelpCircle,  label: "Help",     id: "help"     },
-  { icon: Settings,    label: "Settings", id: "settings" },
-];
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface Props {
   activeTab: string;
@@ -30,6 +17,7 @@ interface Props {
 }
 
 export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobileOpen = false, onMobileClose }: Props) {
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [profile, setProfile] = useState<{ firstName: string; lastName: string; email: string } | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -38,16 +26,29 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
     fetch("/api/profile").then(r => r.json()).then(d => setProfile(d.profile)).catch(() => {});
   }, []);
 
+  const NAV = [
+    { icon: LayoutDashboard, label: t("nav.overview"),  id: "overview"  },
+    { icon: TrendingUp,      label: t("nav.revenue"),   id: "revenue"   },
+    { icon: Users,           label: t("nav.users"),     id: "users"     },
+    { icon: Activity,        label: t("nav.sessions"),  id: "sessions"  },
+    { icon: BarChart3,       label: t("nav.analytics"), id: "analytics" },
+    { icon: FileText,        label: t("nav.reports"),   id: "reports"   },
+  ];
+  const BOTTOM = [
+    { icon: Bell,       label: t("nav.alerts"),   id: "alerts"   },
+    { icon: HelpCircle, label: t("nav.help"),     id: "help"     },
+    { icon: Settings,   label: t("nav.settings"), id: "settings" },
+  ];
+
   const handleTabChange = (id: string) => { onTabChange(id); onMobileClose?.(); };
 
   const handleLogout = async () => {
     setLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" });
-    // Hard navigate so middleware clears the session and forces /login
     window.location.href = "/login";
   };
 
-  const initials = profile ? `${profile.firstName[0]}${profile.lastName[0]}` : "AK";
+  const initials = profile ? `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}` : "AK";
   const fullName = profile ? `${profile.firstName} ${profile.lastName}` : "Alex Kim";
   const email    = profile?.email ?? "alex@orbit.io";
 
@@ -74,9 +75,7 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
         </div>
         {onMobileClose && (
           <button onClick={onMobileClose}
-            className="md:hidden p-1.5 rounded-lg transition-colors
-              text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white
-              hover:bg-gray-100 dark:hover:bg-gray-800">
+            className="md:hidden p-1.5 rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800">
             <X size={18} />
           </button>
         )}
@@ -86,7 +85,7 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {!collapsed && (
           <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-            Main
+            {t("nav.main")}
           </p>
         )}
         {NAV.map(({ icon: Icon, label, id }) => (
@@ -131,8 +130,7 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
 
         {/* User card */}
         {!collapsed ? (
-          <div className="mt-2 p-2 rounded-lg border
-            bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50">
+          <div className="mt-2 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50">
             <div className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity mb-2"
               onClick={() => handleTabChange("settings")}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-blue-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
@@ -144,28 +142,22 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
               </div>
             </div>
             <button onClick={handleLogout} disabled={loggingOut}
-              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-all
-                text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400
-                hover:bg-red-50 dark:hover:bg-red-500/10">
+              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-all text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
               <LogOut size={12} />
-              {loggingOut ? "Signing out…" : "Sign out"}
+              {loggingOut ? t("nav.signingOut") : t("nav.signOut")}
             </button>
           </div>
         ) : (
-          <button onClick={handleLogout} disabled={loggingOut} title="Sign out"
-            className="flex items-center justify-center w-full py-2.5 rounded-lg transition-all
-              text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400
-              hover:bg-red-50 dark:hover:bg-red-500/10">
+          <button onClick={handleLogout} disabled={loggingOut} title={t("nav.signOut")}
+            className="flex items-center justify-center w-full py-2.5 rounded-lg transition-all text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
             <LogOut size={17} />
           </button>
         )}
       </div>
 
-      {/* Desktop collapse toggle */}
+      {/* Collapse toggle */}
       <button onClick={() => setCollapsed(!collapsed)}
-        className="hidden md:flex absolute -right-3 top-20 z-10 items-center justify-center w-6 h-6 rounded-full border transition-colors
-          bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600
-          hover:bg-gray-100 dark:hover:bg-gray-600">
+        className="hidden md:flex absolute -right-3 top-20 z-10 items-center justify-center w-6 h-6 rounded-full border transition-colors bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
         {collapsed
           ? <ChevronRight size={12} className="text-gray-500 dark:text-gray-300" />
           : <ChevronLeft  size={12} className="text-gray-500 dark:text-gray-300" />}
@@ -175,12 +167,7 @@ export default function Sidebar({ activeTab, onTabChange, alertCount = 0, mobile
 
   return (
     <>
-      {/* Desktop */}
-      <div className="hidden md:block h-screen flex-shrink-0 sticky top-0">
-        {sidebarContent}
-      </div>
-
-      {/* Mobile drawer */}
+      <div className="hidden md:block h-screen flex-shrink-0 sticky top-0">{sidebarContent}</div>
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onMobileClose} />
