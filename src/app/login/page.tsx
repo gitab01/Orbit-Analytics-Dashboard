@@ -47,8 +47,6 @@ export default function LoginPage() {
     finally { setLoading(false); }
   };
 
-  const fillDemo = () => { setEmail("alex@orbit.io"); setPassword("demo1234"); setError(""); setFieldErrors({}); };
-
   const inputBase = "w-full px-4 py-3 text-sm rounded-xl border transition-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1";
   const inputOk   = "border-gray-200 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/30";
   const inputErr  = "border-red-400 dark:border-red-500/60 focus:border-red-500 focus:ring-red-500/20";
@@ -75,16 +73,6 @@ export default function LoginPage() {
         </div>
 
         <div className="rounded-2xl p-6 shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
-
-          {/* Demo shortcut */}
-          <button onClick={fillDemo} type="button"
-            className="w-full mb-5 flex items-center justify-between px-4 py-3 rounded-xl border transition-colors group bg-brand-50 dark:bg-brand-500/8 border-brand-200 dark:border-brand-500/20 hover:bg-brand-100 dark:hover:bg-brand-500/15">
-            <div className="text-left">
-              <p className="text-xs font-semibold text-brand-700 dark:text-brand-400">Try the demo</p>
-              <p className="text-xs text-gray-500 mt-0.5">alex@orbit.io · demo1234</p>
-            </div>
-            <ArrowRight size={14} className="text-brand-600 dark:text-brand-400 group-hover:translate-x-0.5 transition-transform" />
-          </button>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
