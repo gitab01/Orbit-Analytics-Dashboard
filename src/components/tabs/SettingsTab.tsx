@@ -116,18 +116,18 @@ export default function SettingsTab() {
   };
 
   return (
-    <div className="flex gap-6 animate-fade-in">
+    <div className="flex flex-col md:flex-row gap-4 md:gap-6 animate-fade-in">
 
-      {/* Sidebar */}
-      <aside className="w-52 flex-shrink-0">
-        <nav className="space-y-1 sticky top-24">
+      {/* Settings nav — horizontal scroll on mobile, vertical sidebar on md+ */}
+      <aside className="md:w-52 md:flex-shrink-0">
+        <nav className="flex md:flex-col gap-1 overflow-x-auto pb-1 md:pb-0 md:sticky md:top-24 scrollbar-none">
           {SECTIONS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setSection(id)}
               className={clsx(
-                "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                section === id ? "bg-brand-500/15 text-brand-400 border border-brand-500/20" : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                "flex items-center gap-2 md:gap-3 w-auto md:w-full px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 md:flex-shrink",
+                section === id ? "bg-brand-500/15 text-brand-400 border border-brand-500/20" : "text-gray-400 hover:bg-gray-800 hover:text-white border border-transparent"
               )}>
-              <Icon size={15} />{label}
+              <Icon size={14} className="md:w-[15px] md:h-[15px]" />{label}
             </button>
           ))}
         </nav>
@@ -283,7 +283,7 @@ export default function SettingsTab() {
         {/* ── BILLING ── */}
         {section === "billing" && profile && (
           <div className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
                 { name:"Starter",    price:"Free",            features:["3 dashboards","7-day history","Email alerts"],              current:false },
                 { name:"Pro",        price:`${profile.currency} 999/mo`, features:["Unlimited dashboards","90-day history","All channels"], current:true  },

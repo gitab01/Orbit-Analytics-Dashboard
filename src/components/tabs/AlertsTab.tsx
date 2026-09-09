@@ -86,21 +86,21 @@ export default function AlertsTab() {
     <div className="space-y-6 animate-fade-in">
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {STATS.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
-            <div className={clsx("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0", bg)}>
-              <Icon size={18} className={color} />
+          <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+            <div className={clsx("w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0", bg)}>
+              <Icon size={17} className={color} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{value}</p>
-              <p className="text-xs text-gray-500">{label}</p>
+              <p className="text-xl sm:text-2xl font-bold text-white">{value}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 leading-tight">{label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
 
         {/* Alert feed */}
         <div className="xl:col-span-2 bg-gray-900 border border-gray-800 rounded-xl">

@@ -10,8 +10,8 @@ export default function ConversionFunnel() {
   const funnel = data?.funnel ?? [];
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <div className="mb-5">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-5">
+      <div className="mb-4 sm:mb-5">
         <h3 className="text-sm font-semibold text-white">Conversion Funnel</h3>
         <p className="text-xs text-gray-500 mt-0.5">Visitor-to-paid pipeline</p>
       </div>

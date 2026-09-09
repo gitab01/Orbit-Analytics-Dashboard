@@ -35,17 +35,17 @@ export default function RevenueChart({ data }: { data: DataPoint[] }) {
   const toggle = (k: string) => setActive(p => p.includes(k) ? p.filter(x => x !== k) : [...p, k]);
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5">
         <div>
           <h3 className="text-sm font-semibold text-white">Performance Over Time</h3>
           <p className="text-xs text-gray-500 mt-0.5">{data.length} data points</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {METRICS.map(m => (
             <button key={m.key} onClick={() => toggle(m.key)}
               className={clsx(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+                "flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium border transition-all",
                 active.includes(m.key) ? "bg-gray-800 border-gray-600 text-white" : "border-gray-800 text-gray-600 hover:text-gray-400"
               )}>
               <span className="w-2 h-2 rounded-full" style={{ background: active.includes(m.key) ? m.color : "#4b5563" }} />
@@ -54,7 +54,7 @@ export default function RevenueChart({ data }: { data: DataPoint[] }) {
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
           <defs>
             {METRICS.map(m => (

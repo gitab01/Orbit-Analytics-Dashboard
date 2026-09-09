@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, RefreshCw, Download, Calendar, X } from "lucide-react";
+import { Search, Bell, RefreshCw, Download, Calendar, X, Menu } from "lucide-react";
 import clsx from "clsx";
 import { useDashboard, type DateRange } from "@/lib/DashboardContext";
 import type { Alert } from "@/lib/store";
@@ -17,9 +17,10 @@ interface Props {
   isRefreshing: boolean;
   onRefresh: () => void;
   onTabChange: (tab: string) => void;
+  onMobileMenuOpen?: () => void;
 }
 
-export default function Header({ title, isRefreshing, onRefresh, onTabChange }: Props) {
+export default function Header({ title, isRefreshing, onRefresh, onTabChange, onMobileMenuOpen }: Props) {
   const { dateRange, setDateRange, filteredSeries, data, searchQuery, setSearchQuery } = useDashboard();
   const [showRange,  setShowRange]  = useState(false);
   const [showBell,   setShowBell]   = useState(false);
@@ -60,13 +61,22 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange }: 
   const badgeCount  = alerts.length;
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/90 backdrop-blur-sm sticky top-0 z-20">
+    <header className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-800 bg-gray-950/90 backdrop-blur-sm sticky top-0 z-20 gap-2">
       {/* Left */}
-      <div>
-        <h1 className="text-lg font-semibold text-white">{title}</h1>
-        <p className="text-xs text-gray-500 mt-0.5">
-          Last updated: {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </p>
+      <div className="flex items-center gap-3">
+        {/* Mobile hamburger */}
+        <button
+          onClick={onMobileMenuOpen}
+          className="md:hidden flex items-center justify-center w-9 h-9 bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+        >
+          <Menu size={18} />
+        </button>
+        <div>
+          <h1 className="text-base md:text-lg font-semibold text-white leading-tight">{title}</h1>
+          <p className="text-xs text-gray-500 hidden sm:block">
+            Last updated: {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </div>
       </div>
 
       {/* Right */}
@@ -136,7 +146,7 @@ export default function Header({ title, isRefreshing, onRefresh, onTabChange }: 
             )}
           </button>
           {showBell && (
-            <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-30 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-30 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
                 <p className="text-sm font-semibold text-white">Notifications</p>
                 <span className="text-xs text-gray-500">{badgeCount} active</span>

@@ -19,8 +19,8 @@ export default function BarMetricChart() {
   const max = Math.max(...data.map(d => d.conversions));
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <div className="mb-5">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-5">
+      <div className="mb-4 sm:mb-5">
         <h3 className="text-sm font-semibold text-white">Daily Conversions</h3>
         <p className="text-xs text-gray-500 mt-0.5">Last 14 days</p>
       </div>

@@ -28,24 +28,24 @@ export default function KPICard({ metric, index }: { metric: KPIMetric; index: n
 
   return (
     <div
-      className="relative rounded-xl p-5 bg-gray-900 border border-gray-800 hover:border-gray-700 transition-all duration-300 cursor-default group overflow-hidden animate-slide-up"
+      className="relative rounded-xl p-3 sm:p-5 bg-gray-900 border border-gray-800 hover:border-gray-700 transition-all duration-300 cursor-default group overflow-hidden animate-slide-up"
       style={{ animationDelay:`${index * 60}ms`, animationFillMode:"backwards" }}
     >
       {/* Hover glow */}
       <div className={clsx("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl", c.bg)} />
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className={clsx("flex items-center justify-center w-10 h-10 rounded-lg", c.bg)}>
-            <Icon size={18} className={c.text} />
+        <div className="flex items-center justify-between mb-2 sm:mb-4">
+          <div className={clsx("flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg", c.bg)}>
+            <Icon size={16} className={c.text} />
           </div>
-          <span className={clsx("text-xs font-semibold px-2 py-0.5 rounded-full", isPositive ? "bg-brand-500/10 text-brand-400" : "bg-red-500/10 text-red-400")}>
+          <span className={clsx("text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full", isPositive ? "bg-brand-500/10 text-brand-400" : "bg-red-500/10 text-red-400")}>
             {metric.change}
           </span>
         </div>
-        <p className="text-2xl font-bold text-white mb-1">{metric.value}</p>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{metric.label}</p>
-        <div className="mt-3 h-0.5 bg-gray-800 rounded-full overflow-hidden">
+        <p className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1 truncate">{metric.value}</p>
+        <p className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wider leading-tight">{metric.label}</p>
+        <div className="mt-2 sm:mt-3 h-0.5 bg-gray-800 rounded-full overflow-hidden">
           <div
             className={clsx("h-full rounded-full transition-all duration-1000", isPositive ? "bg-brand-500" : "bg-red-500")}
             style={{ width:`${barWidth}%` }}

@@ -67,17 +67,17 @@ export default function HelpTab() {
     <div className="space-y-6 animate-fade-in">
 
       {/* Hero search */}
-      <div className="bg-gradient-to-br from-brand-500/10 via-gray-900 to-gray-900 border border-brand-500/20 rounded-xl p-8 text-center">
-        <h2 className="text-xl font-bold text-white mb-2">How can we help?</h2>
-        <p className="text-sm text-gray-400 mb-5">Search our documentation and FAQs</p>
+      <div className="bg-gradient-to-br from-brand-500/10 via-gray-900 to-gray-900 border border-brand-500/20 rounded-xl p-6 sm:p-8 text-center">
+        <h2 className="text-lg sm:text-xl font-bold text-white mb-2">How can we help?</h2>
+        <p className="text-xs sm:text-sm text-gray-400 mb-4 sm:mb-5">Search our documentation and FAQs</p>
         <div className="relative max-w-md mx-auto">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
           <input type="text" placeholder="Search help articles…" value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30" />
+            className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
 
         {/* FAQ */}
         <div className="xl:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
@@ -139,7 +139,7 @@ export default function HelpTab() {
       {/* Docs grid */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-white mb-4">Documentation</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {DOCS.map(({ title, category, icon: Icon, time }) => (
             <button key={title}
               className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800 hover:border-gray-600 text-left transition-all group">

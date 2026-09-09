@@ -24,9 +24,10 @@ const TAB_TITLES: Record<string,string> = {
 };
 
 export default function DashboardPage() {
-  const [activeTab,    setActiveTab]    = useState("overview");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { refresh, data } = useDashboard();
+  const [activeTab,      setActiveTab]      = useState("overview");
+  const [isRefreshing,   setIsRefreshing]   = useState(false);
+  const [mobileNavOpen,  setMobileNavOpen]  = useState(false);
+  const { refresh } = useDashboard();
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -38,10 +39,22 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} alertCount={activeAlertCount} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <Header title={TAB_TITLES[activeTab] ?? "Dashboard"} isRefreshing={isRefreshing} onRefresh={handleRefresh} onTabChange={setActiveTab} />
-        <div className="flex-1 overflow-y-auto bg-gray-950 p-6">
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        alertCount={activeAlertCount}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <Header
+          title={TAB_TITLES[activeTab] ?? "Dashboard"}
+          isRefreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          onTabChange={setActiveTab}
+          onMobileMenuOpen={() => setMobileNavOpen(true)}
+        />
+        <div className="flex-1 overflow-y-auto bg-gray-950 p-3 sm:p-4 md:p-6">
           {activeTab === "overview"  && <OverviewTab />}
           {activeTab === "revenue"   && <RevenueTab />}
           {activeTab === "users"     && <UsersTab />}
@@ -71,30 +84,30 @@ function OverviewTab() {
   const { data, loading, filteredSeries } = useDashboard();
 
   if (loading) return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-36" />)}
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        {Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-32 sm:h-36" />)}
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Skeleton className="xl:col-span-2 h-80" /><Skeleton className="h-80" />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+        <Skeleton className="xl:col-span-2 h-72 sm:h-80" /><Skeleton className="h-72 sm:h-80" />
       </div>
     </div>
   );
   if (!data) return null;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {data.kpi.map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
         <div className="xl:col-span-2"><RevenueChart data={filteredSeries} /></div>
         <TrafficPieChart />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         <ConversionFunnel />
         <BarMetricChart />
-        <ActivityFeed />
+        <div className="sm:col-span-2 xl:col-span-1"><ActivityFeed /></div>
       </div>
       <TopPagesTable />
     </div>
@@ -109,12 +122,12 @@ function RevenueTab() {
   if (loading) return <Skeleton className="h-96 w-full" />;
   if (!data) return null;
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {data.kpi.slice(0,4).map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
       <RevenueChart data={filteredSeries} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <ConversionFunnel />
         <BarMetricChart />
       </div>
@@ -130,11 +143,11 @@ function UsersTab() {
   if (loading) return <Skeleton className="h-96 w-full" />;
   if (!data) return null;
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[data.kpi[1], data.kpi[2], data.kpi[3], data.kpi[5]].map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
         <div className="xl:col-span-2"><RevenueChart data={filteredSeries} /></div>
         <ActivityFeed />
       </div>
@@ -147,16 +160,15 @@ function UsersTab() {
 // Sessions Tab — own content (not duplicate of Analytics)
 // ─────────────────────────────────────────────
 function SessionsTab() {
-  const { data, loading, filteredSeries } = useDashboard();
+  const { data, loading } = useDashboard();
   if (loading) return <Skeleton className="h-96 w-full" />;
   if (!data) return null;
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* sessions-focused KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[data.kpi[2], data.kpi[1], data.kpi[3]].map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <BarMetricChart />
         <TrafficPieChart />
       </div>
@@ -173,18 +185,18 @@ function AnalyticsTab() {
   if (loading) return <Skeleton className="h-96 w-full" />;
   if (!data) return null;
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {data.kpi.map((m,i) => <KPICard key={m.id} metric={m} index={i} />)}
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         <RevenueChart data={filteredSeries} />
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <TrafficPieChart />
           <BarMetricChart />
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <ConversionFunnel />
         <ActivityFeed />
       </div>

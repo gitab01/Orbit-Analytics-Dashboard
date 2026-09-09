@@ -97,23 +97,23 @@ export default function ReportsTab() {
     <div className="space-y-6 animate-fade-in">
 
       {/* Type selector */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {TYPES.map(({ id, label, icon:Icon, color, desc }) => (
           <button key={id} onClick={() => setActiveType(id)}
-            className={clsx("text-left p-4 rounded-xl border transition-all",
+            className={clsx("text-left p-3 sm:p-4 rounded-xl border transition-all",
               activeType === id ? CARD_ACTIVE[color] : "bg-gray-900 border-gray-800 hover:border-gray-700"
             )}>
-            <div className={clsx("w-9 h-9 rounded-lg flex items-center justify-center mb-3", ICON_BG[color])}>
-              <Icon size={17} />
+            <div className={clsx("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center mb-2 sm:mb-3", ICON_BG[color])}>
+              <Icon size={16} />
             </div>
-            <p className="text-sm font-semibold text-white mb-1">{label}</p>
-            <p className="text-xs text-gray-500">{desc}</p>
+            <p className="text-xs sm:text-sm font-semibold text-white mb-0.5 sm:mb-1">{label}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">{desc}</p>
           </button>
         ))}
       </div>
 
       {/* Preview + archive */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
         <div className="xl:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -255,24 +255,27 @@ export default function ReportsTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
-                {["Report Name","Type","Frequency","Last Sent","Status",""].map(h => (
-                  <th key={h} className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
+                <th className="text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Report Name</th>
+                <th className="hidden sm:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="hidden md:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
+                <th className="hidden md:table-cell text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sent</th>
+                <th className="text-left px-4 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 sm:px-5 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
               {reports.map(r => (
                 <tr key={r.id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 sm:px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <Calendar size={13} className="text-gray-500 flex-shrink-0" />
-                      <span className="text-white font-medium">{r.name}</span>
+                      <span className="text-white font-medium text-xs sm:text-sm">{r.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-gray-400 capitalize">{r.type}</td>
-                  <td className="px-5 py-3.5 text-gray-400">{r.freq}</td>
-                  <td className="px-5 py-3.5 text-gray-400">{r.last}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="hidden sm:table-cell px-4 sm:px-5 py-3.5 text-gray-400 capitalize text-xs sm:text-sm">{r.type}</td>
+                  <td className="hidden md:table-cell px-4 sm:px-5 py-3.5 text-gray-400 text-xs sm:text-sm">{r.freq}</td>
+                  <td className="hidden md:table-cell px-4 sm:px-5 py-3.5 text-gray-400 text-xs sm:text-sm">{r.last}</td>
+                  <td className="px-4 sm:px-5 py-3.5">
                     <button onClick={() => toggleReport(r.id, r.status)}
                       className={clsx("px-2 py-0.5 rounded-full text-xs font-medium border transition-all",
                         r.status === "active"
@@ -282,7 +285,7 @@ export default function ReportsTab() {
                       {r.status === "active" ? "Active" : "Paused"}
                     </button>
                   </td>
-                  <td className="px-5 py-3.5 text-right">
+                  <td className="px-4 sm:px-5 py-3.5 text-right">
                     <button onClick={() => deleteReport(r.id)} className="text-gray-600 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/10">
                       <Trash2 size={13} />
                     </button>

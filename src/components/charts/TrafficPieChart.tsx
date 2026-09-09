@@ -22,7 +22,7 @@ export default function TrafficPieChart() {
   const traffic = data?.traffic ?? [];
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-5">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-white">Traffic Sources</h3>
         <p className="text-xs text-gray-500 mt-0.5">Distribution by channel</p>
