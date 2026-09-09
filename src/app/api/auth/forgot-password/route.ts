@@ -47,12 +47,17 @@ export async function POST(req: NextRequest) {
     const sent = await sendResetEmail(cleanEmail, code);
 
     if (!sent) {
-      // No email provider configured — log to console for dev
+      // No email provider configured — return code in response for dev/demo mode
       console.log("\n══════════════════════════════════════════");
       console.log("  PASSWORD RESET CODE (dev mode)");
       console.log(`  Email : ${cleanEmail}`);
       console.log(`  Code  : ${code}`);
       console.log("══════════════════════════════════════════\n");
+      return NextResponse.json({
+        ok: true,
+        message: "If an account exists, a code has been sent.",
+        devCode: code,
+      });
     }
 
     return NextResponse.json({

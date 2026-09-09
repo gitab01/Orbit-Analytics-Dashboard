@@ -1,51 +1,51 @@
 // ── Shared validation helpers ─────────────────────────────────
 
 /**
- * General email regex — used for login and API validation.
- * Accepts any valid email format.
- */
-export const EMAIL_RE_GENERAL =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
-
-/**
- * Gmail-only regex — used for signup to enforce @gmail.com.
+ * General email regex — accepts any valid email format.
+ * Used for login, forgot-password, and all non-signup API routes.
  */
 export const EMAIL_RE =
-  /^[a-zA-Z0-9](?:[a-zA-Z0-9.]{0,28}[a-zA-Z0-9])?@gmail\.com$/;
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
 
-export const COMMON_DOMAINS = ["gmail.com"];
+export const EMAIL_RE_GENERAL = EMAIL_RE;
 
-/** Used by login API — accepts any valid email */
+/**
+ * Gmail-only regex — signup must be @gmail.com.
+ * Local part: 1–64 chars, letters/numbers/dots/plus/hyphens allowed.
+ */
+export const EMAIL_RE_GMAIL =
+  /^[a-zA-Z0-9][a-zA-Z0-9.+\-]*@gmail\.com$/;
+
+/** Used by login & forgot-password — accepts any valid email */
 export function isValidEmail(email: string): boolean {
-  return EMAIL_RE_GENERAL.test(email.trim().toLowerCase());
-}
-
-/** Used by signup — only accepts @gmail.com */
-export function isValidGmailEmail(email: string): boolean {
   return EMAIL_RE.test(email.trim().toLowerCase());
 }
 
-/** Returns an error string if invalid, null if valid (signup — gmail only) */
-export function validateEmailField(email: string): string | null {
-  const e = email.trim();
-  if (!e) return "Email address is required";
-  if (!e.includes("@")) return "Please include '@' in the email address";
-  const [, domain] = e.split("@");
-  if (!domain) return "Email must be in the format name@gmail.com";
-  if (domain.toLowerCase() !== "gmail.com")
-    return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
-  if (!EMAIL_RE.test(e.toLowerCase()))
-    return "Please enter a valid Gmail address (e.g. name@gmail.com)";
-  return null;
+/** Used by signup API & signup page — only accepts @gmail.com */
+export function isValidGmailEmail(email: string): boolean {
+  return EMAIL_RE_GMAIL.test(email.trim().toLowerCase());
 }
 
-/** Returns an error string if invalid, null if valid (login — any email) */
+/** Validate for login/forgot-password (any email) */
 export function validateLoginEmail(email: string): string | null {
   const e = email.trim();
   if (!e) return "Email address is required";
   if (!e.includes("@")) return "Please include '@' in the email address";
-  if (!EMAIL_RE_GENERAL.test(e.toLowerCase()))
+  if (!EMAIL_RE.test(e.toLowerCase()))
     return "Please enter a valid email address";
+  return null;
+}
+
+/** Validate for signup (gmail only) */
+export function validateEmailField(email: string): string | null {
+  const e = email.trim();
+  if (!e) return "Email address is required";
+  if (!e.includes("@")) return "Please include '@' in the email address";
+  const domain = e.split("@")[1]?.toLowerCase();
+  if (!domain || domain !== "gmail.com")
+    return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
+  if (!EMAIL_RE_GMAIL.test(e.toLowerCase()))
+    return "Please enter a valid Gmail address (e.g. name@gmail.com)";
   return null;
 }
 

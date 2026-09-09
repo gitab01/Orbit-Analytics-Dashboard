@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const nameErr = isValidName(name ?? "");
     if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
     if (!email?.trim()) return NextResponse.json({ error: "Email address is required" }, { status: 400 });
-    if (!isValidGmailEmail(email)) return NextResponse.json({ error: "Please enter a valid Gmail address (e.g. name@gmail.com)" }, { status: 400 });
+    if (!isValidGmailEmail(email)) return NextResponse.json({ error: "Only Gmail addresses are accepted (e.g. name@gmail.com)" }, { status: 400 });
     const pwErr = isValidPassword(password ?? "");
     if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
 
@@ -47,12 +47,17 @@ export async function POST(req: NextRequest) {
     const sent = await sendVerificationEmail(cleanEmail, name.trim(), code);
 
     if (!sent) {
-      // Dev fallback — log to console
+      // No email provider — return code in response for dev/demo mode
       console.log("\n══════════════════════════════════════════");
       console.log("  EMAIL VERIFICATION CODE (dev mode)");
       console.log(`  Email : ${cleanEmail}`);
       console.log(`  Code  : ${code}`);
       console.log("══════════════════════════════════════════\n");
+      return NextResponse.json({
+        ok: true,
+        message: "Verification code sent. Please check your email.",
+        devCode: code, // shown in UI when no email provider is configured
+      }, { status: 200 });
     }
 
     return NextResponse.json({

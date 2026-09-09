@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import ThemeToggle from "@/components/ThemeToggle";
-import { validateEmailField, isValidPassword } from "@/lib/validate";
+import { validateLoginEmail, isValidPassword } from "@/lib/validate";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 type Step = "email" | "code" | "newPassword" | "done";
@@ -34,6 +34,7 @@ export default function ForgotPasswordPage() {
   const [confirmErr, setConfirmErr] = useState("");
   const [resending,  setResending]  = useState(false);
   const [resendMsg,  setResendMsg]  = useState("");
+  const [devCode,    setDevCode]    = useState("");
 
   // ── Password strength ─────────────────────────────────────────
   const PW_RULES = [
@@ -58,7 +59,7 @@ export default function ForgotPasswordPage() {
   // ── Step 1: send code ─────────────────────────────────────────
   const handleSendCode = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const err = validateEmailField(email);
+    const err = validateLoginEmail(email);
     if (err) { setEmailErr(err); return; }
     setEmailErr(""); setError(""); setLoading(true);
     try {
@@ -68,6 +69,7 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? t("forgot.failedSend")); return; }
+      if (data.devCode) setDevCode(data.devCode);
       setStep("code");
     } catch { setError(t("forgot.networkError")); }
     finally { setLoading(false); }
@@ -169,8 +171,8 @@ export default function ForgotPasswordPage() {
                 <div className="relative">
                   <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input id="fp-email" type="email" value={email}
-                    onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(validateEmailField(e.target.value) ?? ""); }}
-                    onBlur={() => setEmailErr(validateEmailField(email) ?? "")}
+                    onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(validateLoginEmail(e.target.value) ?? ""); }}
+                    onBlur={() => setEmailErr(validateLoginEmail(email) ?? "")}
                     placeholder="name@gmail.com" autoComplete="email" autoCapitalize="off" spellCheck={false}
                     className={clsx(inputBase, "pl-10", emailErr ? inputErr : inputOk)} />
                 </div>
@@ -206,6 +208,14 @@ export default function ForgotPasswordPage() {
                 <label htmlFor="fp-code" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
                   {t("forgot.codeLabel")}
                 </label>
+
+                {/* Dev mode: show code directly when no email provider */}
+                {devCode && (
+                  <div className="mb-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-center">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">No email provider — your code is:</p>
+                    <p className="text-2xl font-mono font-bold tracking-[0.3em] text-amber-800 dark:text-amber-300">{devCode}</p>
+                  </div>
+                )}
                 <div className="relative">
                   <KeyRound size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input id="fp-code" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6}

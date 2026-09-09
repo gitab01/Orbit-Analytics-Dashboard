@@ -34,6 +34,7 @@ export default function SignupPage() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendMsg, setResendMsg] = useState("");
+  const [devCode,   setDevCode]   = useState("");
 
   // ── Password strength ─────────────────────────────────────────
   const PW_RULES = [
@@ -61,9 +62,6 @@ export default function SignupPage() {
     email: (v) => {
       if (!v.trim()) return t("login.emailRequired");
       if (!v.includes("@")) return "Please include '@' in the email address";
-      const [, domain] = v.trim().split("@");
-      if (domain?.toLowerCase() !== "gmail.com")
-        return "Only Gmail addresses are accepted (e.g. name@gmail.com)";
       if (!isValidGmailEmail(v)) return "Please enter a valid Gmail address (e.g. name@gmail.com)";
       return "";
     },
@@ -109,6 +107,7 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? t("signup.failed")); return; }
+      if (data.devCode) setDevCode(data.devCode); // no email provider — show code in UI
       setStep("verify");
     } catch { setError(t("signup.networkError")); }
     finally { setLoading(false); }
@@ -139,8 +138,12 @@ export default function SignupPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
       });
-      if (res.ok) { setCode(""); setResendMsg(t("signup.resendSuccess")); }
-      else setResendMsg(t("signup.resendFailed"));
+      const resData = await res.json();
+      if (res.ok) {
+        setCode("");
+        if (resData.devCode) setDevCode(resData.devCode);
+        setResendMsg(t("signup.resendSuccess"));
+      } else setResendMsg(t("signup.resendFailed"));
     } catch { setResendMsg(t("signup.resendFailed")); }
     finally { setResending(false); }
   };
@@ -335,6 +338,14 @@ export default function SignupPage() {
               <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/15 mx-auto mb-2">
                 <Mail size={26} className="text-brand-500" />
               </div>
+
+              {/* Dev mode: show code directly when no email provider */}
+              {devCode && (
+                <div className="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-center">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">No email provider configured — your code is:</p>
+                  <p className="text-2xl font-mono font-bold tracking-[0.3em] text-amber-800 dark:text-amber-300">{devCode}</p>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="v-code" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
