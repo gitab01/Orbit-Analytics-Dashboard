@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/login", "/api/auth/signup"];
+// NOTE: This middleware runs on the Edge Runtime — Buffer is NOT available.
+// Use atob/btoa (Web APIs) instead.
+
+const PUBLIC_PATHS = ["/login", "/signup"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public paths and static assets
+  // Always allow public auth paths, Next internals, and static files
   if (
-    PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
-    pathname.startsWith("/_next") ||
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
     pathname.includes(".")
   ) {
@@ -24,7 +28,9 @@ export function middleware(req: NextRequest) {
   }
 
   try {
-    JSON.parse(Buffer.from(session, "base64").toString("utf-8"));
+    // Edge-safe base64 decode — atob is available in Edge Runtime
+    const decoded = atob(session);
+    JSON.parse(decoded);
     return NextResponse.next();
   } catch {
     const loginUrl = new URL("/login", req.url);
@@ -33,5 +39,8 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.svg).*)"],
+  // Match everything except Next.js internals and static assets
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.svg|.*\\.(?:ico|png|jpg|jpeg|svg|webp|css|js|woff2?|ttf)).*)",
+  ],
 };

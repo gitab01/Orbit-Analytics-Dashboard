@@ -6,7 +6,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ user: null }, { status: 401 });
   }
   try {
-    const user = JSON.parse(Buffer.from(session, "base64").toString("utf-8"));
+    // atob works in Node 18+ and Edge Runtime
+    const user = JSON.parse(atob(session));
     return NextResponse.json({ user });
   } catch {
     return NextResponse.json({ user: null }, { status: 401 });

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// In-memory user registry (persists for server lifetime)
-// In production: persist to DB with hashed passwords
-export const registeredUsers: { id: string; name: string; email: string; password: string; role: string }[] = [
+// In-memory user registry (resets on cold start — swap for a DB in production)
+export const registeredUsers: {
+  id: string; name: string; email: string; password: string; role: string;
+}[] = [
   { id: "u1", name: "Alex Kim",     email: "alex@orbit.io",  password: "demo1234", role: "Admin"  },
   { id: "u2", name: "Sara Tadesse", email: "sara@orbit.io",  password: "demo1234", role: "Editor" },
   { id: "u3", name: "Demo User",    email: "demo@orbit.io",  password: "demo1234", role: "Viewer" },
@@ -14,13 +15,10 @@ export async function POST(req: NextRequest) {
   if (!name?.trim() || !email?.trim() || !password) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
   }
-
   if (password.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
   }
 
@@ -38,11 +36,10 @@ export async function POST(req: NextRequest) {
     password,
     role: "Viewer",
   };
-
   registeredUsers.push(newUser);
 
   const { password: _, ...safeUser } = newUser;
-  const session = Buffer.from(JSON.stringify(safeUser)).toString("base64");
+  const session = btoa(JSON.stringify(safeUser));
 
   const res = NextResponse.json({ ok: true, user: safeUser }, { status: 201 });
   res.cookies.set("orbit_session", session, {
