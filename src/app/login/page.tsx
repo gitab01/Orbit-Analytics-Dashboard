@@ -97,15 +97,9 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {t("login.passwordLabel")}
-                </label>
-                <Link href="/forgot-password"
-                  className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors">
-                  {t("login.forgotPassword")}
-                </Link>
-              </div>
+              <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                {t("login.passwordLabel")}
+              </label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
@@ -126,6 +120,13 @@ export default function LoginPage() {
                   <AlertCircle size={11} className="flex-shrink-0" />{fieldErrors.password}
                 </p>
               )}
+              {/* Forgot password — below the input */}
+              <div className="flex justify-end pt-0.5">
+                <Link href="/forgot-password"
+                  className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors">
+                  {t("login.forgotPassword")}
+                </Link>
+              </div>
             </div>
 
             {/* Error */}
