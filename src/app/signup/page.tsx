@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Eye, EyeOff, Orbit, ArrowRight, ArrowLeft,
-  Loader2, Check, AlertCircle, X, KeyRound, Mail, CheckCircle,
+  Loader2, Check, AlertCircle, X, KeyRound, Mail, CheckCircle, User, Lock,
 } from "lucide-react";
 import clsx from "clsx";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -14,10 +14,8 @@ type Step = "register" | "verify";
 
 export default function SignupPage() {
   const { t } = useLanguage();
-
   const [step, setStep] = useState<Step>("register");
 
-  // Step 1
   const [name,        setName]        = useState("");
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
@@ -28,7 +26,6 @@ export default function SignupPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched,     setTouched]     = useState<Record<string, boolean>>({});
 
-  // Step 2
   const [code,      setCode]      = useState("");
   const [codeErr,   setCodeErr]   = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -36,30 +33,28 @@ export default function SignupPage() {
   const [resendMsg, setResendMsg] = useState("");
   const [devCode,   setDevCode]   = useState("");
 
-  // ── Password strength ─────────────────────────────────────────
   const PW_RULES = [
-    { id: "len",   label: t("signup.rule8chars"),   test: (p: string) => p.length >= 8   },
-    { id: "upper", label: t("signup.ruleUppercase"), test: (p: string) => /[A-Z]/.test(p) },
-    { id: "num",   label: t("signup.ruleNumber"),   test: (p: string) => /[0-9]/.test(p) },
+    { id:"len",   label: t("signup.rule8chars"),   test: (p: string) => p.length >= 8   },
+    { id:"upper", label: t("signup.ruleUppercase"), test: (p: string) => /[A-Z]/.test(p) },
+    { id:"num",   label: t("signup.ruleNumber"),   test: (p: string) => /[0-9]/.test(p) },
   ];
 
-  function strengthLevel(pw: string): "none"|"weak"|"medium"|"strong" {
-    if (!pw) return "none";
-    const n = PW_RULES.filter(r => r.test(pw)).length;
+  const strength = (() => {
+    const n = PW_RULES.filter(r => r.test(password)).length;
+    if (!password) return "none";
     return n === 3 ? "strong" : n === 2 ? "medium" : "weak";
-  }
+  })();
 
-  const strengthCfg = {
-    none:   { width:"w-0",    color:"bg-gray-300 dark:bg-gray-700", label:"",                text:"" },
-    weak:   { width:"w-1/3",  color:"bg-red-500",                   label:t("signup.weak"),  text:"text-red-500 dark:text-red-400" },
-    medium: { width:"w-2/3",  color:"bg-amber-500",                 label:t("signup.medium"),text:"text-amber-500 dark:text-amber-400" },
-    strong: { width:"w-full", color:"bg-brand-500",                 label:t("signup.strong"),text:"text-brand-600 dark:text-brand-400" },
-  }[strengthLevel(password)];
+  const strCfg = {
+    none:   { w:"w-0",    c:"bg-gray-200 dark:bg-gray-700", label:"",                text:"" },
+    weak:   { w:"w-1/3",  c:"bg-red-500",                   label:t("signup.weak"),  text:"text-red-500 dark:text-red-400" },
+    medium: { w:"w-2/3",  c:"bg-amber-400",                 label:t("signup.medium"),text:"text-amber-500 dark:text-amber-400" },
+    strong: { w:"w-full", c:"bg-brand-500",                 label:t("signup.strong"),text:"text-brand-600 dark:text-brand-400" },
+  }[strength];
 
-  // ── Validators ────────────────────────────────────────────────
   const validators: Record<string, (v: string) => string> = {
-    name: (v) => isValidName(v) ?? "",
-    email: (v) => {
+    name:     (v) => isValidName(v) ?? "",
+    email:    (v) => {
       if (!v.trim()) return t("login.emailRequired");
       if (!v.includes("@")) return "Please include '@' in the email address";
       if (!isValidGmailEmail(v)) return "Please enter a valid Gmail address (e.g. name@gmail.com)";
@@ -72,7 +67,7 @@ export default function SignupPage() {
       if (!/[0-9]/.test(v)) return t("signup.ruleNumber");
       return "";
     },
-    confirm: (v) => {
+    confirm:  (v) => {
       if (!v) return t("signup.confirmPassword");
       if (v !== password) return t("settings.pwNoMatch");
       return "";
@@ -81,12 +76,11 @@ export default function SignupPage() {
 
   const touch    = (f: string) => setTouched(p => ({ ...p, [f]: true }));
   const validate = (f: string, v: string) => {
-    const err = validators[f]?.(v) ?? "";
-    setFieldErrors(p => ({ ...p, [f]: err }));
-    return err;
+    const e = validators[f]?.(v) ?? "";
+    setFieldErrors(p => ({ ...p, [f]: e }));
+    return e;
   };
 
-  // ── Step 1: register & send code ─────────────────────────────
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -98,7 +92,6 @@ export default function SignupPage() {
     };
     setTouched({ name: true, email: true, password: true, confirm: true });
     if (Object.values(errs).some(Boolean)) return;
-
     setLoading(true);
     try {
       const res  = await fetch("/api/auth/signup", {
@@ -107,13 +100,12 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? t("signup.failed")); return; }
-      if (data.devCode) setDevCode(data.devCode); // no email provider — show code in UI
+      if (data.devCode) setDevCode(data.devCode);
       setStep("verify");
     } catch { setError(t("signup.networkError")); }
     finally { setLoading(false); }
   };
 
-  // ── Step 2: verify code ───────────────────────────────────────
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{6}$/.test(code.trim())) { setCodeErr(t("signup.invalidCode")); return; }
@@ -130,7 +122,6 @@ export default function SignupPage() {
     finally { setVerifying(false); }
   };
 
-  // ── Resend code ───────────────────────────────────────────────
   const handleResend = async () => {
     setResending(true); setResendMsg(""); setCodeErr("");
     try {
@@ -138,192 +129,198 @@ export default function SignupPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
       });
-      const resData = await res.json();
-      if (res.ok) {
-        setCode("");
-        if (resData.devCode) setDevCode(resData.devCode);
-        setResendMsg(t("signup.resendSuccess"));
-      } else setResendMsg(t("signup.resendFailed"));
+      const d = await res.json();
+      if (res.ok) { setCode(""); if (d.devCode) setDevCode(d.devCode); setResendMsg(t("signup.resendSuccess")); }
+      else setResendMsg(t("signup.resendFailed"));
     } catch { setResendMsg(t("signup.resendFailed")); }
     finally { setResending(false); }
   };
 
-  // ── Styles ────────────────────────────────────────────────────
-  const inputBase = "w-full px-4 py-3 text-sm rounded-xl border transition-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1";
-  const inputOk   = "border-gray-200 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/30";
-  const inputErr  = "border-red-400 dark:border-red-500/60 focus:border-red-500 focus:ring-red-500/20";
-  const inputGood = "border-brand-400 dark:border-brand-500/60 focus:border-brand-500 focus:ring-brand-500/20";
+  const base = "w-full px-4 py-3 text-sm rounded-xl border transition-all duration-150 bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2";
+  const ok   = "border-gray-200 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/20";
+  const bad  = "border-red-400 dark:border-red-500/60 focus:border-red-500 focus:ring-red-500/20";
+  const good = "border-brand-400 dark:border-brand-500/50 focus:border-brand-500 focus:ring-brand-500/20";
 
-  const fieldCls = (field: string, value: string) => {
-    if (!touched[field]) return clsx(inputBase, inputOk);
-    if (fieldErrors[field]) return clsx(inputBase, inputErr);
-    if (value) return clsx(inputBase, inputGood);
-    return clsx(inputBase, inputOk);
+  const cls = (field: string, val: string) => {
+    if (!touched[field]) return clsx(base, ok);
+    if (fieldErrors[field]) return clsx(base, bad);
+    if (val) return clsx(base, good);
+    return clsx(base, ok);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 transition-colors">
       <div className="fixed top-4 right-4 z-10"><ThemeToggle /></div>
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl bg-brand-500/8" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl bg-blue-500/6" />
+        <div className="absolute -top-60 -right-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-25 bg-brand-500/20" />
+        <div className="absolute -bottom-60 -left-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-15 bg-blue-500/20" />
       </div>
 
-      <div className="w-full max-w-sm relative">
+      <div className="w-full max-w-[400px] relative">
 
-        {/* Logo & heading */}
+        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-500 mb-4 shadow-lg shadow-brand-500/30">
-            <Orbit size={24} className="text-white" />
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500 mb-5 shadow-xl shadow-brand-500/25">
+            <Orbit size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-[1.75rem] font-bold tracking-tight text-gray-900 dark:text-white">
             {step === "register" ? t("signup.createAccount") : t("signup.verifyTitle")}
           </h1>
-          <p className="text-sm text-gray-500 mt-1 text-center">
-            {step === "register"
-              ? t("signup.subtitle")
-              : t("signup.verifySubtitle", { email })}
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 text-center">
+            {step === "register" ? t("signup.subtitle") : t("signup.verifySubtitle", { email })}
           </p>
         </div>
 
-        <div className="rounded-2xl p-6 shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+        <div className="rounded-2xl p-7 shadow-2xl shadow-gray-200/60 dark:shadow-black/40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
 
-          {/* ── STEP 1: Registration ── */}
+          {/* ── STEP 1 ── */}
           {step === "register" && (
             <>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-5">
+              {/* Benefits row */}
+              <div className="flex flex-wrap gap-3 mb-6 pb-5 border-b border-gray-100 dark:border-gray-800">
                 {[t("signup.freePlan"), t("signup.realtimeCharts"), t("signup.teamCollab")].map(b => (
-                  <div key={b} className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span key={b} className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
                     <Check size={11} className="text-brand-500 flex-shrink-0" />{b}
-                  </div>
+                  </span>
                 ))}
               </div>
 
               <form onSubmit={handleRegister} noValidate className="space-y-4">
 
-                {/* Full name */}
-                <div>
-                  <label htmlFor="name" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                {/* Name */}
+                <div className="space-y-1.5">
+                  <label htmlFor="su-name" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     {t("signup.fullName")}
                   </label>
-                  <input id="name" type="text" value={name}
-                    onChange={e => { setName(e.target.value); if (touched.name) validate("name", e.target.value); }}
-                    onBlur={() => { touch("name"); validate("name", name); }}
-                    placeholder="Alex Kim" autoComplete="name"
-                    className={fieldCls("name", name)} />
+                  <div className="relative">
+                    <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input id="su-name" type="text" value={name}
+                      onChange={e => { setName(e.target.value); if (touched.name) validate("name", e.target.value); }}
+                      onBlur={() => { touch("name"); validate("name", name); }}
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      className={clsx(cls("name", name), "pl-10")} />
+                  </div>
                   {touched.name && fieldErrors.name && (
-                    <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                       <AlertCircle size={11} className="flex-shrink-0" />{fieldErrors.name}
                     </p>
                   )}
                 </div>
 
                 {/* Email */}
-                <div>
-                  <label htmlFor="email" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                <div className="space-y-1.5">
+                  <label htmlFor="su-email" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     {t("signup.emailAddress")}
                   </label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input id="email" type="email" value={email}
+                    <input id="su-email" type="email" value={email}
                       onChange={e => { setEmail(e.target.value); if (touched.email) validate("email", e.target.value); }}
                       onBlur={() => { touch("email"); validate("email", email); }}
-                      placeholder="name@gmail.com" autoComplete="email" autoCapitalize="off" spellCheck={false}
-                      className={clsx(fieldCls("email", email), "pl-10")} />
+                      placeholder="you@gmail.com"
+                      autoComplete="email" autoCapitalize="off" spellCheck={false}
+                      className={clsx(cls("email", email), "pl-10")} />
                   </div>
                   {touched.email && fieldErrors.email && (
-                    <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                       <AlertCircle size={11} className="flex-shrink-0" />{fieldErrors.email}
                     </p>
                   )}
                 </div>
 
                 {/* Password */}
-                <div>
-                  <label htmlFor="password" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                <div className="space-y-1.5">
+                  <label htmlFor="su-pw" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     {t("signup.password")}
                   </label>
                   <div className="relative">
-                    <input id="password" type={showPw ? "text" : "password"} value={password}
+                    <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input id="su-pw" type={showPw ? "text" : "password"} value={password}
                       onChange={e => { setPassword(e.target.value); if (touched.password) validate("password", e.target.value); }}
                       onBlur={() => { touch("password"); validate("password", password); }}
-                      placeholder={t("signup.passwordMin")} autoComplete="new-password"
-                      className={clsx(fieldCls("password", password), "pr-11")} />
+                      placeholder="Min. 8 characters"
+                      autoComplete="new-password"
+                      className={clsx(cls("password", password), "pl-10 pr-11")} />
                     <button type="button" onClick={() => setShowPw(!showPw)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-0.5">
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+
+                  {/* Strength bar */}
                   {password && (
-                    <div className="mt-2 space-y-1.5">
+                    <div className="space-y-1.5 pt-0.5">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                          <div className={clsx("h-full rounded-full transition-all duration-300", strengthCfg.width, strengthCfg.color)} />
+                        <div className="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                          <div className={clsx("h-full rounded-full transition-all duration-300", strCfg.w, strCfg.c)} />
                         </div>
-                        <span className={clsx("text-xs font-medium w-12 text-right", strengthCfg.text)}>{strengthCfg.label}</span>
+                        <span className={clsx("text-xs font-semibold w-14 text-right", strCfg.text)}>{strCfg.label}</span>
                       </div>
-                      <div className="space-y-0.5">
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                         {PW_RULES.map(rule => {
                           const ok = rule.test(password);
                           return (
-                            <p key={rule.id} className={clsx("flex items-center gap-1.5 text-xs transition-colors", ok ? "text-brand-600 dark:text-brand-400" : "text-gray-400 dark:text-gray-500")}>
-                              {ok ? <Check size={11} className="flex-shrink-0" /> : <X size={11} className="flex-shrink-0" />}
+                            <span key={rule.id} className={clsx("flex items-center gap-1 text-xs transition-colors", ok ? "text-brand-600 dark:text-brand-400" : "text-gray-400 dark:text-gray-500")}>
+                              {ok ? <Check size={10} className="flex-shrink-0" /> : <X size={10} className="flex-shrink-0" />}
                               {rule.label}
-                            </p>
+                            </span>
                           );
                         })}
                       </div>
                     </div>
                   )}
                   {touched.password && fieldErrors.password && !password && (
-                    <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                       <AlertCircle size={11} className="flex-shrink-0" />{fieldErrors.password}
                     </p>
                   )}
                 </div>
 
-                {/* Confirm password */}
-                <div>
-                  <label htmlFor="confirm" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                {/* Confirm */}
+                <div className="space-y-1.5">
+                  <label htmlFor="su-confirm" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     {t("signup.confirmPassword")}
                   </label>
                   <div className="relative">
-                    <input id="confirm" type={showPw ? "text" : "password"} value={confirm}
+                    <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input id="su-confirm" type={showPw ? "text" : "password"} value={confirm}
                       onChange={e => { setConfirm(e.target.value); if (touched.confirm) validate("confirm", e.target.value); }}
                       onBlur={() => { touch("confirm"); validate("confirm", confirm); }}
-                      placeholder={t("signup.repeatPassword")} autoComplete="new-password"
-                      className={fieldCls("confirm", confirm)} />
+                      placeholder="Repeat your password"
+                      autoComplete="new-password"
+                      className={clsx(cls("confirm", confirm), "pl-10 pr-10")} />
                     {touched.confirm && !fieldErrors.confirm && confirm && (
                       <CheckCircle size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-500" />
                     )}
                   </div>
                   {touched.confirm && fieldErrors.confirm && (
-                    <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                       <AlertCircle size={11} className="flex-shrink-0" />{fieldErrors.confirm}
                     </p>
                   )}
                 </div>
 
                 {error && (
-                  <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20">
+                  <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl border bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20">
                     <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{error}</p>
                   </div>
                 )}
 
                 <button type="submit" disabled={loading}
-                  className={clsx("w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all mt-1",
-                    loading ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
+                  className={clsx("w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-150 mt-1",
+                    loading ? "bg-brand-400 text-white/70 cursor-not-allowed" : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/30"
                   )}>
                   {loading
                     ? <><Loader2 size={15} className="animate-spin" /> {t("signup.creating")}</>
                     : <>{t("signup.createBtn")} <ArrowRight size={15} /></>}
                 </button>
 
-                <p className="text-center text-xs text-gray-400">
+                <p className="text-center text-xs text-gray-400 dark:text-gray-500">
                   {t("signup.termsText")}{" "}
-                  <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer underline-offset-2 hover:underline">
+                  <span className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer underline underline-offset-2">
                     {t("signup.terms")}
                   </span>
                 </p>
@@ -333,59 +330,61 @@ export default function SignupPage() {
 
           {/* ── STEP 2: Verify ── */}
           {step === "verify" && (
-            <form onSubmit={handleVerify} noValidate className="space-y-4">
+            <form onSubmit={handleVerify} noValidate className="space-y-5">
 
-              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/15 mx-auto mb-2">
-                <Mail size={26} className="text-brand-500" />
+              <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-500/15 mx-auto">
+                <Mail size={28} className="text-brand-500" />
               </div>
 
-              {/* Dev mode: show code directly when no email provider */}
+              {/* Dev mode banner */}
               {devCode && (
-                <div className="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-center">
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">No email provider configured — your code is:</p>
-                  <p className="text-2xl font-mono font-bold tracking-[0.3em] text-amber-800 dark:text-amber-300">{devCode}</p>
+                <div className="px-4 py-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 text-center space-y-1">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Your verification code</p>
+                  <p className="text-3xl font-mono font-bold tracking-[0.35em] text-amber-800 dark:text-amber-300">{devCode}</p>
+                  <p className="text-xs text-amber-600/70 dark:text-amber-500/70">No email provider configured</p>
                 </div>
               )}
 
-              <div>
-                <label htmlFor="v-code" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+              <div className="space-y-1.5">
+                <label htmlFor="v-code" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   {t("signup.codeLabel")}
                 </label>
                 <div className="relative">
                   <KeyRound size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input id="v-code" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6}
                     value={code}
-                    onChange={e => { const v = e.target.value.replace(/\D/g, ""); setCode(v); if (codeErr) setCodeErr(""); }}
-                    placeholder="_ _ _ _ _ _" autoComplete="one-time-code"
-                    className={clsx(inputBase, "pl-10 tracking-[0.4em] text-center font-mono text-lg", codeErr ? inputErr : inputOk)} />
+                    onChange={e => { const v = e.target.value.replace(/\D/g,""); setCode(v); if (codeErr) setCodeErr(""); }}
+                    placeholder="• • • • • •"
+                    autoComplete="one-time-code"
+                    className={clsx(base, "pl-10 tracking-[0.5em] text-center font-mono text-xl font-bold", codeErr ? bad : ok)} />
                 </div>
                 {codeErr && (
-                  <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                  <p className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                     <AlertCircle size={11} className="flex-shrink-0" />{codeErr}
                   </p>
                 )}
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-gray-400">{t("signup.codeExpiry")}</p>
+                <div className="flex items-center justify-between pt-0.5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{t("signup.codeExpiry")}</p>
                   <button type="button" disabled={resending} onClick={handleResend}
-                    className="text-xs text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 transition-opacity">
+                    className="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline disabled:opacity-50 transition-opacity">
                     {resending ? t("signup.resending") : t("signup.resendCode")}
                   </button>
                 </div>
-                {resendMsg && <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">{resendMsg}</p>}
+                {resendMsg && <p className="text-xs text-brand-600 dark:text-brand-400">{resendMsg}</p>}
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+                <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl border bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20">
                   <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
                 </div>
               )}
 
               <button type="submit" disabled={verifying || code.length !== 6}
-                className={clsx("w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all",
+                className={clsx("w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-150",
                   verifying || code.length !== 6
                     ? "bg-brand-400 text-white/70 cursor-not-allowed"
-                    : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/20"
+                    : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/30"
                 )}>
                 {verifying
                   ? <><Loader2 size={15} className="animate-spin" /> {t("signup.verifying")}</>
@@ -393,17 +392,17 @@ export default function SignupPage() {
               </button>
 
               <button type="button"
-                onClick={() => { setStep("register"); setCode(""); setCodeErr(""); setError(""); }}
-                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors py-1">
+                onClick={() => { setStep("register"); setCode(""); setCodeErr(""); setError(""); setDevCode(""); }}
+                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-1">
                 <ArrowLeft size={12} /> {t("signup.useDifferentEmail")}
               </button>
             </form>
           )}
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-5">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           {t("signup.alreadyHave")}{" "}
-          <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
+          <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-semibold transition-colors">
             {t("signup.signIn")}
           </Link>
         </p>

@@ -12,10 +12,10 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 type Step = "email" | "code" | "newPassword" | "done";
 
-const inputBase = "w-full px-4 py-3 text-sm rounded-xl border transition-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1";
-const inputOk   = "border-gray-200 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/30";
+const inputBase = "w-full px-4 py-3 text-sm rounded-xl border transition-all duration-150 bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2";
+const inputOk   = "border-gray-200 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/20";
 const inputErr  = "border-red-400 dark:border-red-500/60 focus:border-red-500 focus:ring-red-500/20";
-const inputGood = "border-brand-400 dark:border-brand-500/60 focus:border-brand-500 focus:ring-brand-500/20";
+const inputGood = "border-brand-400 dark:border-brand-500/50 focus:border-brand-500 focus:ring-brand-500/20";
 
 export default function ForgotPasswordPage() {
   const { t } = useLanguage();
@@ -140,32 +140,32 @@ export default function ForgotPasswordPage() {
   }[step];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 transition-colors">
       <div className="fixed top-4 right-4 z-10"><ThemeToggle /></div>
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-3xl bg-brand-500/10" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-3xl bg-blue-500/6" />
+        <div className="absolute -top-60 -left-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-30 bg-brand-500/20" />
+        <div className="absolute -bottom-60 -right-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-20 bg-blue-500/20" />
       </div>
 
-      <div className="w-full max-w-sm relative">
+      <div className="w-full max-w-[400px] relative">
 
         {/* Logo & heading */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-500 mb-4 shadow-lg shadow-brand-500/30">
-            <Orbit size={24} className="text-white" />
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500 mb-5 shadow-xl shadow-brand-500/25">
+            <Orbit size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{stepTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1 text-center">{stepSubtitle}</p>
+          <h1 className="text-[1.75rem] font-bold tracking-tight text-gray-900 dark:text-white">{stepTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 text-center">{stepSubtitle}</p>
         </div>
 
-        <div className="rounded-2xl p-6 shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+        <div className="rounded-2xl p-7 shadow-2xl shadow-gray-200/60 dark:shadow-black/40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
 
           {/* ── STEP 1: Email ── */}
           {step === "email" && (
             <form onSubmit={handleSendCode} noValidate className="space-y-4">
               <div>
-                <label htmlFor="fp-email" className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
+                <label htmlFor="fp-email" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   {t("forgot.emailLabel")}
                 </label>
                 <div className="relative">
@@ -173,7 +173,7 @@ export default function ForgotPasswordPage() {
                   <input id="fp-email" type="email" value={email}
                     onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(validateLoginEmail(e.target.value) ?? ""); }}
                     onBlur={() => setEmailErr(validateLoginEmail(email) ?? "")}
-                    placeholder="name@gmail.com" autoComplete="email" autoCapitalize="off" spellCheck={false}
+                    placeholder="you@example.com" autoComplete="email" autoCapitalize="off" spellCheck={false}
                     className={clsx(inputBase, "pl-10", emailErr ? inputErr : inputOk)} />
                 </div>
                 {emailErr && (
@@ -363,9 +363,9 @@ export default function ForgotPasswordPage() {
         </div>
 
         {step !== "done" && (
-          <p className="text-center text-sm text-gray-500 mt-5">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
             {t("forgot.rememberPw")}{" "}
-            <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
+            <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-semibold transition-colors">
               {t("forgot.signIn")}
             </Link>
           </p>
