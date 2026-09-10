@@ -4,6 +4,7 @@ import { createToken, COOKIE, MAX_AGE } from "@/lib/auth";
 import { isValidGmailEmail } from "@/lib/validate";
 import { store, nextId, userProfiles, userNotifications, defaultProfile, defaultNotifications } from "@/lib/store";
 import { verifyEmailCode } from "@/lib/emailVerification";
+import { addRegisteredUser } from "@/lib/registeredUsers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,6 +63,9 @@ export async function POST(req: NextRequest) {
       const nameParts = name.split(" ");
       const initials  = nameParts.map((w: string) => w[0]?.toUpperCase() ?? "").slice(0, 2).join("");
       store.team.push({ id, name, email: cleanEmail, role: "Viewer", avatar: initials, online: true });
+
+      // Save to registeredUsers so login can verify credentials later
+      addRegisteredUser({ id, name, email: cleanEmail, passwordHash, role: "Viewer" });
 
       // Create a personal profile for this user
       userProfiles.set(id, defaultProfile(id, name, cleanEmail));
