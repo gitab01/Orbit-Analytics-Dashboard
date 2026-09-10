@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, hasDB } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { userProfiles, defaultProfile } from "@/lib/store";
 
 // Store avatar as base64 data URL in the profiles table
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    const userId  = session?.id ?? "u1";
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.id;
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -17,15 +19,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only JPG, PNG, WEBP or GIF allowed" }, { status: 400 });
     }
 
-    const buffer   = await file.arrayBuffer();
-    const base64   = Buffer.from(buffer).toString("base64");
-    const dataUrl  = `data:${file.type};base64,${base64}`;
+    const buffer  = await file.arrayBuffer();
+    const base64  = Buffer.from(buffer).toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
     if (hasDB) {
       try { await db()`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`; } catch {}
       await db()`UPDATE profiles SET avatar_url = ${dataUrl} WHERE user_id = ${userId}`;
+    } else {
+      // In-memory: persist avatar on the user's profile
+      const existing = userProfiles.get(userId) ?? defaultProfile(userId, session.name, session.email);
+      userProfiles.set(userId, { ...existing, avatarUrl: dataUrl });
     }
-    // In-memory: just return the data URL — client will display it
 
     return NextResponse.json({ ok: true, avatarUrl: dataUrl });
   } catch (err) {

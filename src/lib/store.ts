@@ -15,7 +15,6 @@ export interface KPI {
   id: string; label: string; value: string;
   change: string; trend: Trend; icon: string; color: string;
 }
-// Alias for components that import KPIMetric
 export type KPIMetric = KPI;
 export interface DataPoint {
   date: string; revenue: number; users: number;
@@ -27,7 +26,6 @@ export interface TopPage {
   uniqueVisitors: number; bounceRate: number;
   avgTime: string; status: PageStatus;
 }
-// Alias
 export type PageRow = TopPage;
 export interface FunnelStage { stage: string; value: number; pct: number }
 export interface Event {
@@ -65,6 +63,35 @@ export interface ScheduledReport {
 export interface Integration {
   id: string; name: string; desc: string;
   logo: string; connected: boolean; category: string;
+}
+
+// ── Per-user profile store ────────────────────
+// Keyed by user ID. New users get a default profile built from their name/email.
+export const userProfiles = new Map<string, Profile & { avatarUrl?: string }>();
+export const userNotifications = new Map<string, Notifications>();
+
+export function defaultProfile(id: string, name: string, email: string): Profile {
+  const parts = name.trim().split(" ");
+  return {
+    firstName:   parts[0] ?? "",
+    lastName:    parts.slice(1).join(" ") ?? "",
+    email,
+    jobTitle:    "",
+    company:     "",
+    timezone:    "Africa/Addis_Ababa",
+    bio:         "",
+    currency:    "ETB",
+    language:    "English (US)",
+    dateFormat:  "MMM DD, YYYY",
+    fiscalYear:  "January",
+    defaultView: "Overview",
+    refreshRate: "60",
+    theme:       "Dark",
+  };
+}
+
+export function defaultNotifications(): Notifications {
+  return { email:true, slack:false, browser:false, weekly:true, monthly:true, alerts:true };
 }
 
 // ── Seed helpers ─────────────────────────────
@@ -201,3 +228,30 @@ export const store: {
     { id:"i6", name:"Segment",         desc:"Centralise your customer data pipeline",logo:"⚡", connected:true,  category:"Data"          },
   ],
 };
+
+// ── Seed demo user profiles ───────────────────
+// These match the DEMO_USERS in login/route.ts
+userProfiles.set("u1", {
+  firstName:"Alex", lastName:"Kim", email:"alex@orbit.io",
+  jobTitle:"Head of Growth", company:"Orbit Inc.",
+  timezone:"Africa/Addis_Ababa", bio:"SaaS growth lead tracking KPIs and conversion metrics.",
+  currency:"ETB", language:"English (US)", dateFormat:"MMM DD, YYYY",
+  fiscalYear:"January", defaultView:"Overview", refreshRate:"60", theme:"Dark",
+});
+userProfiles.set("u2", {
+  firstName:"Sara", lastName:"Tadesse", email:"sara@orbit.io",
+  jobTitle:"Product Manager", company:"Orbit Inc.",
+  timezone:"Africa/Addis_Ababa", bio:"",
+  currency:"ETB", language:"English (US)", dateFormat:"MMM DD, YYYY",
+  fiscalYear:"January", defaultView:"Overview", refreshRate:"60", theme:"Dark",
+});
+userProfiles.set("u3", {
+  firstName:"Demo", lastName:"User", email:"demo@orbit.io",
+  jobTitle:"", company:"",
+  timezone:"Africa/Addis_Ababa", bio:"",
+  currency:"ETB", language:"English (US)", dateFormat:"MMM DD, YYYY",
+  fiscalYear:"January", defaultView:"Overview", refreshRate:"60", theme:"Dark",
+});
+userNotifications.set("u1", { email:true, slack:true, browser:false, weekly:true, monthly:true, alerts:true });
+userNotifications.set("u2", { email:true, slack:false, browser:false, weekly:true, monthly:false, alerts:true });
+userNotifications.set("u3", { email:true, slack:false, browser:false, weekly:false, monthly:false, alerts:false });

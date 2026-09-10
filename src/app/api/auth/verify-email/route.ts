@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql, hasDB } from "@/lib/db";
 import { createToken, COOKIE, MAX_AGE } from "@/lib/auth";
 import { isValidGmailEmail } from "@/lib/validate";
-import { store, nextId } from "@/lib/store";
+import { store, nextId, userProfiles, userNotifications, defaultProfile, defaultNotifications } from "@/lib/store";
 import { verifyEmailCode } from "@/lib/emailVerification";
 
 export async function POST(req: NextRequest) {
@@ -48,17 +48,25 @@ export async function POST(req: NextRequest) {
       const newUser   = rows[0];
       const nameParts = name.split(" ");
       await sql`
-        INSERT INTO profiles (user_id, first_name, last_name)
-        VALUES (${newUser.id}, ${nameParts[0]}, ${nameParts.slice(1).join(" ") || ""})
+        INSERT INTO profiles (user_id, first_name, last_name, currency, language,
+          date_format, fiscal_year, default_view, refresh_rate, theme, timezone)
+        VALUES (${newUser.id}, ${nameParts[0] ?? ""}, ${nameParts.slice(1).join(" ") ?? ""},
+          'ETB', 'English (US)', 'MMM DD, YYYY', 'January', 'Overview', '60', 'Dark',
+          'Africa/Addis_Ababa')
         ON CONFLICT (user_id) DO NOTHING
       `;
       safeUser = { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role };
     } else {
-      // In-memory fallback
+      // In-memory fallback — create user + profile
       const id        = nextId();
       const nameParts = name.split(" ");
       const initials  = nameParts.map((w: string) => w[0]?.toUpperCase() ?? "").slice(0, 2).join("");
       store.team.push({ id, name, email: cleanEmail, role: "Viewer", avatar: initials, online: true });
+
+      // Create a personal profile for this user
+      userProfiles.set(id, defaultProfile(id, name, cleanEmail));
+      userNotifications.set(id, defaultNotifications());
+
       safeUser = { id, name, email: cleanEmail, role: "Viewer" };
     }
 
