@@ -45,7 +45,7 @@ export default function LoginPage() {
   const err  = "border-red-400 dark:border-red-500/60 focus:border-red-500 focus:ring-red-500/20";
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 transition-colors">
       <div className="fixed top-4 right-4 z-10"><ThemeToggle /></div>
 
       {/* Subtle background accent */}
@@ -54,21 +54,22 @@ export default function LoginPage() {
         <div className="absolute -bottom-60 -right-60 w-[500px] h-[500px] rounded-full blur-3xl opacity-20 bg-blue-500/20" />
       </div>
 
-      <div className="w-full max-w-[400px] relative">
+      <div className="w-full max-w-[420px] relative">
 
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500 mb-5 shadow-xl shadow-brand-500/25">
-            <Orbit size={28} className="text-white" />
+        <div className="flex flex-col items-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-brand-500 mb-4 sm:mb-5 shadow-xl shadow-brand-500/25">
+            <Orbit size={24} className="text-white sm:hidden" />
+            <Orbit size={28} className="text-white hidden sm:block" />
           </div>
-          <h1 className="text-[1.75rem] font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-[1.75rem] font-bold tracking-tight text-gray-900 dark:text-white">
             {t("login.welcomeBack")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">{t("login.subtitle")}</p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl p-7 shadow-2xl shadow-gray-200/60 dark:shadow-black/40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+        <div className="rounded-2xl p-5 sm:p-7 shadow-xl sm:shadow-2xl shadow-gray-200/60 dark:shadow-black/40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
             {/* Email */}
@@ -150,7 +151,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-5 sm:mt-6">
           {t("login.noAccount")}{" "}
           <Link href="/signup" className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-semibold transition-colors">
             {t("login.createFree")}

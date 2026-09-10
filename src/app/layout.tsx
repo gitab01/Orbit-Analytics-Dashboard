@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   description: "Interactive analytics dashboard with real-time data visualization, custom charts, and advanced filtering. Built for SaaS teams to monitor KPIs at a glance.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 // Inline script injected before paint to avoid flash-of-wrong-theme
 const themeScript = `
 (function(){
